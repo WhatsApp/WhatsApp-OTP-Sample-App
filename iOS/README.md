@@ -7,7 +7,7 @@ A sample app integrating the WhatsApp OTP feature.
 ## Request OTP via Sample Server
 
 ### Setup Sample Server
-Follow [the instruction](https://github.com/WhatsApp/WhatsApp-OTP-Sample-App/Server/README.md) to setup and run Sample Server locally.
+Follow [the instruction](https://github.com/WhatsApp/WhatsApp-OTP-Sample-App/blob/main/Server/README.md) to setup and run Sample Server locally.
 
 ### Setup developer environment
 1. Clone this repository
