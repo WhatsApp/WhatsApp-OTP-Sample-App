@@ -25,4 +25,5 @@ Follow [the instruction](https://github.com/WhatsApp/WhatsApp-OTP-Sample-App/Ser
 4. If everything was setup correctly, you should receive an OTP code from WhatsApp soon, copy and paste the code to verify
 
 ### Demo Video
-![](sample_app_demo.mp4)
+https://github.com/WhatsApp/WhatsApp-OTP-Sample-App/assets/127359784/7536f938-87ca-40eb-a137-534923ebecff
+
