@@ -122,9 +122,7 @@ public class OtpValidatorFragment extends Fragment {
     this.fillCode(extras);
     this.showDebugMessages(extras);
     String filledCode = binding.otpCodeInputId.getText().toString();
-    if (!filledCode.isEmpty()) {
-      binding.validateOtp.callOnClick();
-    } else {
+    if (filledCode.isEmpty()) {
       listenForCodeToAutoSubmit();
     }
   }
@@ -136,10 +134,6 @@ public class OtpValidatorFragment extends Fragment {
         if (intent != null) {
           String code = intent.getStringExtra("code");
           OtpValidatorFragment.this.binding.otpCodeInputId.setText(code);
-          FragmentActivity activity = getActivity();
-          if (activity != null && isAdded()) {
-            OtpValidatorFragment.this.binding.validateOtp.callOnClick();
-          }
         }
       }
     };
