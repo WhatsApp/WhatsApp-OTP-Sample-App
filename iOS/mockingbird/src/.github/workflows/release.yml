@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    branches:
+    - 'master'
+    - 'release-*'
+    tags:
+    - '*'
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_13.2.app/Contents/Developer
+
+jobs:
+  build-signed-artifacts:
+    name: Build Signed Artifacts
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Import Secrets
+      uses: apple-actions/import-codesign-certs@v1
+      with:
+        p12-file-base64: ${{ secrets.CERTIFICATES_P12 }}
+        p12-password: ${{ secrets.CERTIFICATES_P12_PASSWORD }}
+    - name: Set Up Project
+      run: Sources/MockingbirdAutomationCli/buildAndRun.sh configure unload --keep MockingbirdFramework
+    - name: Build CLI
+      env:
+        AC_USERNAME: ${{ secrets.AC_USERNAME }}
+        AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
+      run: |
+        Sources/MockingbirdAutomationCli/buildAndRun.sh build cli \
+          --sign 'Developer ID Application: Bird Rides, Inc. (P2T4T6R4SL)' \
+          --archive .build/mockingbird/artifacts/Mockingbird.zip
+    - name: Build Framework
+      run: |
+        Sources/MockingbirdAutomationCli/buildAndRun.sh build framework \
+          --archive .build/mockingbird/artifacts/Mockingbird.xcframework.zip
+    - name: Build Supporting Sources
+      run: |
+        Sources/MockingbirdAutomationCli/buildAndRun.sh build supporting \
+          --archive .build/mockingbird/artifacts/MockingbirdSupport.zip
+    - name: Document SHAs
+      run: |
+        shasum -a 512 .build/mockingbird/artifacts/Mockingbird.zip
+        shasum -a 512 .build/mockingbird/artifacts/Mockingbird.xcframework.zip
+        shasum -a 512 .build/mockingbird/artifacts/MockingbirdSupport.zip
+    - name: Upload CLI
+      uses: actions/upload-artifact@v2
+      with:
+        name: Mockingbird.zip
+        path: .build/mockingbird/artifacts/Mockingbird.zip
+    - name: Upload Framework
+      uses: actions/upload-artifact@v2
+      with:
+        name: Mockingbird.xcframework.zip
+        path: .build/mockingbird/artifacts/Mockingbird.xcframework.zip
+    - name: Upload Supporting Sources
+      uses: actions/upload-artifact@v2
+      with:
+        name: MockingbirdSupport.zip
+        path: .build/mockingbird/artifacts/MockingbirdSupport.zip
+
+  build-docs:
+    name: Build Docs
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set Up Project
+      run: Sources/MockingbirdAutomationCli/buildAndRun.sh configure load --overwrite
+
+    - name: Checkout Swift-DocC
+      uses: actions/checkout@v2
+      with:
+        repository: apple/swift-docc
+        path: swift-docc
+    - name: Build Swift-DocC
+      working-directory: swift-docc
+      run: swift build --configuration release
+
+    - name: Checkout Swift-DocC-Render
+      uses: actions/checkout@v2
+      with:
+        repository: apple/swift-docc-render
+        path: swift-docc-render
+    - name: Patch Swift-DocC-Render
+      working-directory: swift-docc-render
+      run: git apply ../Sources/Documentation/Patches/swift-docc-render/*.patch
+    - name: Build Swift-DocC-Render
+      working-directory: swift-docc-render
+      run: |
+        npm install
+        npm run build
+
+    - name: Build DocC Archive
+      run: |
+        Sources/MockingbirdAutomationCli/buildAndRun.sh build docs \
+          --docc swift-docc/.build/release/docc \
+          --renderer swift-docc-render/dist \
+          --archive .build/mockingbird/artifacts/Mockingbird.doccarchive.zip
+    - name: Upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: Mockingbird.doccarchive.zip
+        path: .build/mockingbird/artifacts/Mockingbird.doccarchive.zip

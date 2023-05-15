@@ -1,0 +1,8 @@
+#include "TargetFramework.xcconfig"
+#include "../src/Mockingbird.xcodeproj/xcconfigs/MockingbirdFramework.xcconfig"
+
+INFOPLIST_FILE = $(SRCROOT)/src/Sources/MockingbirdFramework/Info.plist
+GCC_ENABLE_OBJC_EXCEPTIONS = YES
+GCC_WARN_SHADOW = NO
+OTHER_CODE_SIGN_FLAGS =
+SDKROOT = iphoneos

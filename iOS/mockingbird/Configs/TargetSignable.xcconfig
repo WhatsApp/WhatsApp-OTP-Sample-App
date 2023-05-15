@@ -1,0 +1,5 @@
+
+CODE_SIGN_IDENTITY[config=Debug*][sdk=iphoneos*] = iPhone Developer
+CODE_SIGN_IDENTITY[config=Beta*][sdk=iphoneos*] = iPhone Distribution
+CODE_SIGN_IDENTITY[config=Release*][sdk=iphoneos*] = iPhone Distribution
+CODE_SIGN_IDENTITY[config=Profile*][sdk=iphoneos*] = iPhone Developer

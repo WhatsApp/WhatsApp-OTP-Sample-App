@@ -1,0 +1,10 @@
+**/project.xcworkspace/xcshareddata
+.DS_Store
+xcuserdata
+/DerivedData/
+.swiftpm/
+build/
+build_output/
+*.generated.swift
+**/*.xcodeproj/MockingbirdCache/
+*~

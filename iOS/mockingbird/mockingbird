@@ -1,0 +1,27 @@
+#!/usr/bin/env dotslash
+{
+  "name": "mockingbird",
+  "oncall": "oncall+wa_frameworks_and_tools_ios@xmail.facebook.com",
+  "platforms": {
+    "macos": {
+      "scheme": "manifold",
+      "bucket": "mockingbird_swift_artifacts",
+      "path": "tree/0.20.0-dev-snapshot-2023-03-06/Mockingbird-macos.tar.gz",
+      "api_key": "mockingbird_swift_artifacts-key",
+      "extract": {
+        "decompress": "tar.gz",
+        "path": "Mockingbird-macos/mockingbird"
+      }
+    },
+    "linux": {
+      "scheme": "manifold",
+      "bucket": "mockingbird_swift_artifacts",
+      "path": "tree/0.20.0-dev-snapshot-2023-03-06/Mockingbird-centos8.tar.gz",
+      "api_key": "mockingbird_swift_artifacts-key",
+      "extract": {
+        "decompress": "tar.gz",
+        "path": "Mockingbird-centos8/mockingbird"
+      }
+    }
+  }
+}

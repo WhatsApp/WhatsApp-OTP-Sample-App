@@ -1,0 +1,40 @@
+
+#include "GlobalBase.xcconfig"
+
+ARCHS = $(ARCHS_STANDARD_64_BIT)
+DEBUG_INFORMATION_FORMAT = dwarf
+DEPLOYMENT_POSTPROCESSING = NO
+GCC_OPTIMIZATION_LEVEL = 0
+LLVM_LTO = NO
+MTL_ENABLE_DEBUG_INFO = YES
+ONLY_ACTIVE_ARCH = YES
+SWIFT_COMPILATION_MODE = singlefile
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+TARGETED_DEVICE_FAMILY = 1,2,6
+MACOSX_DEPLOYMENT_TARGET = 11.0;
+VALIDATE_PRODUCT = NO
+CLANG_ENABLE_MODULE_DEBUGGING = YES
+EAGER_LINKING = YES
+
+// Just enabled in debug because sharing of PCH files carries some risk. For more details https://fburl.com/ogoljbsr
+GCC_INCREASE_PRECOMPILED_HEADER_SHARING = YES
+
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) DEBUG=1 WA_ENABLE_COMPANION_SUPPORT=1 FB_SONARKIT_ENABLED=1
+GCC_PREPROCESSOR_DEFINITIONS[config=Debug] = $(inherited) STELLA_INTEGRATION=1 WA_ENABLE_BUG_NUB=1
+
+OTHER_SWIFT_FLAGS = $(inherited) -D FB_SONARKIT_ENABLED
+OTHER_SWIFT_FLAGS[config=Debug] = $(inherited) -D WA_ENABLE_BUG_NUB
+
+STRIP_INSTALLED_PRODUCT = NO
+
+OTHER_CODE_SIGN_FLAGS = --digest-algorithm=sha1
+
+IPHONEOS_DEPLOYMENT_TARGET[sdk=iphone*] = $(IPHONEOS_DEPLOYMENT_TARGET_PREVIEWS_OVERRIDE:default=12.0)
+
+// If you don't want to treat warnings as errors locally, or want to override other settings run:
+//
+// cp -i Configs/Global/LocalOverrides.xcconfig.sample Configs/Global/GlobalDebugLocalOverrides.xcconfig
+//
+// Note 'GlobalDebugLocalOverrides.xcconfig' will be ignored by Git
+// If you change your mind, delete `GlobalDebugLocalOverrides.xcconfig` file but keep the project reference. You should see no files modified at all times.
+#include? "GlobalDebugLocalOverrides.xcconfig" // Note, this won't override values in ProjectDebug.xcconfig
