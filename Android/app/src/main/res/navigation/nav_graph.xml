@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    tools:showIn="@layout/content_main"
+    app:startDestination="@id/OtpChannelSelectorFragmentId">
+
+    <fragment
+        android:id="@+id/OtpChannelSelectorFragmentId"
+        android:name="com.whatsapp.otp.sample.app.fragment.OtpChannelSelectorFragment"
+        android:label="@string/otp_channel_selector_title"
+        tools:layout="@layout/fragment_otp_select_channel">
+        <action
+            android:id="@+id/OtpCodeReceivedValidateActionId"
+            app:destination="@id/OtpValidateFragmentId" />
+    </fragment>
+    <fragment
+        android:id="@+id/OtpValidateFragmentId"
+        android:name="com.whatsapp.otp.sample.app.fragment.OtpValidatorFragment"
+        android:label="Validate OTP"
+        tools:layout="@layout/fragment_otp_validate">
+    </fragment>
+</navigation>

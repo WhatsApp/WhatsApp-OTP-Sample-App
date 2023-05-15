@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">OTP Sample Application</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="otp_channel_selector_title">Send one time password</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="request_otp">Request OTP</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="hello_first_fragment">Hello first fragment</string>
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="title_select_otp_channel">Verify your identity</string>
+    <string name="one_time_password">One time password</string>
+    <string name="button_request_otp">Request One time password</string>
+    <string name="hint_phone_number_input_field">Enter phone number</string>
+    <string name="waiting_for_otp">Waiting for OTP</string>
+    <string name="otp_code_hint">OTP CODE</string>
+    <string name="validate_otp">Validate OTP</string>
+    <string name="loading_hash_message">Loading ...</string>
+    <string name="app_signature">Signature:</string>
+</resources>

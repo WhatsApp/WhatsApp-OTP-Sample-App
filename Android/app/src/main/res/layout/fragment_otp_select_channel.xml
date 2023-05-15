@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".app.fragment.OtpChannelSelectorFragment">
+
+    <TextView
+        android:id="@+id/title_otp_channel_selector"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/title_select_otp_channel"
+        android:textSize="15pt"
+        app:layout_constraintBottom_toTopOf="@+id/editTextPhoneId"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+      android:id="@+id/editTextPhoneId"
+      android:hint="@string/hint_phone_number_input_field"
+      android:layout_width="match_parent"
+      android:layout_height="50dp"
+      android:layout_marginTop="8dp"
+      android:textAlignment="center"
+      android:ems="10"
+      android:inputType="phone"
+      app:layout_constraintBottom_toTopOf="@+id/OptionsId"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/title_otp_channel_selector"/>
+
+    <RadioGroup
+        android:id="@+id/OptionsId"
+        android:layout_width="188dp"
+        android:layout_height="113dp"
+        android:layout_marginBottom="32dp"
+        app:layout_constraintBottom_toTopOf="@+id/request_otp_button_id"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editTextPhoneId">
+
+        <RadioButton
+            android:id="@+id/WhatsAppSelectorId"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send code via WhatsApp"
+            tools:layout_editor_absoluteX="31dp"
+            tools:layout_editor_absoluteY="298dp" />
+
+        <RadioButton
+            android:id="@+id/SmsSelectorId"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="Send code via SMS"
+            tools:layout_editor_absoluteX="31dp"
+            tools:layout_editor_absoluteY="298dp" />
+    </RadioGroup>
+
+    <Button
+        android:id="@+id/request_otp_button_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:text="@string/request_otp"
+        app:layout_constraintBottom_toTopOf="@+id/otpGenerateErrorMessageId"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/OptionsId" />
+
+    <TextView
+      android:id="@+id/otpGenerateErrorMessageId"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:enabled="false"
+      android:textSize="15sp"
+      android:textAlignment="center"
+      android:textColor="@color/red"
+      app:layout_constraintBottom_toTopOf="@+id/hashSignatureId"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/request_otp_button_id" />
+
+    <TextView
+        android:id="@+id/hashSignatureId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_signature"
+        android:textSize="12pt"
+        app:layout_constraintBottom_toTopOf="@id/hashSignatureValueId"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/otpGenerateErrorMessageId" />
+
+    <TextView
+        android:id="@+id/hashSignatureValueId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:text="@string/loading_hash_message"
+        android:textSize="10pt"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/hashSignatureId" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
