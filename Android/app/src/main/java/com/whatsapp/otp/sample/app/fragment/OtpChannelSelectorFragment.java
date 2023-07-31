@@ -17,7 +17,9 @@ import com.whatsapp.otp.sample.app.otp.WhatsAppOtpIntentHandler;
 import com.whatsapp.otp.sample.app.signature.AppSignatureRetriever;
 import com.whatsapp.otp.sample.databinding.FragmentOtpSelectChannelBinding;
 import dagger.hilt.android.AndroidEntryPoint;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import javax.inject.Inject;
 
 
@@ -31,6 +33,8 @@ public class OtpChannelSelectorFragment extends Fragment {
 
   @Inject
   WhatsAppOtpIntentHandler whatsAppOtpIntentHandler;
+
+  @Inject Set<Function<Context, View>> channelSelectorPlugins;
 
   private FragmentOtpSelectChannelBinding binding;
 
@@ -51,6 +55,7 @@ public class OtpChannelSelectorFragment extends Fragment {
       sendOtp(onSuccessHandler,
           this::errorMessageConsumer);
     });
+    channelSelectorPlugins.forEach(plugin -> binding.plugins.addView(plugin.apply(getContext())));
     String signatures = String.join("/", appSignatureRetriever.getAppSignatures());
     binding.hashSignatureValueId.setText(signatures);
   }
