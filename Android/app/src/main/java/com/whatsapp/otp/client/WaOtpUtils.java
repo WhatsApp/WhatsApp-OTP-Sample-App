@@ -40,21 +40,22 @@ public class WaOtpUtils {
 
   @NonNull
   public static Intent createCodeBroadcasterIntent(final @NonNull Intent intent,
-      final @NonNull String action) {
+      final @NonNull String action, final @NonNull Context context) {
     String otpCode = getWhatsAppCode(intent);
     if (otpCode != null) {
-      return createCodeBroadcasterIntent(otpCode, action);
+      return createCodeBroadcasterIntent(otpCode, action, context);
     }
     throw new InvalidWhatsAppOtpIntentException("No code provided");
   }
 
   @NonNull
   private static Intent createCodeBroadcasterIntent(final @NonNull String otpCode,
-      final @NonNull String action) {
+      final @NonNull String action, final @NonNull Context context) {
     WA_LOGGER.debug("Received code: " + otpCode);
     Intent local = new Intent();
     local.setAction(action);
     local.putExtra(CODE_KEY, otpCode);
+    local.setPackage(context.getPackageName());
     return local;
   }
 

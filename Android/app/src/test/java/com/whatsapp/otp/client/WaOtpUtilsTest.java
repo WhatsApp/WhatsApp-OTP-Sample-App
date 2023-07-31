@@ -141,10 +141,11 @@ public class WaOtpUtilsTest {
     mockRetrunedCode(SAMPLE_CODE);
     // Test
     Intent filledOtpLoginIntent = WaOtpUtils.createCodeBroadcasterIntent(intent,
-        BROADCAST_ACTION_LEY);
+        BROADCAST_ACTION_LEY, context);
     // Assertions
     assertThat(filledOtpLoginIntent).isNotNull();
     assertThat(filledOtpLoginIntent.getAction()).isEqualTo(BROADCAST_ACTION_LEY);
+    assertThat(filledOtpLoginIntent.getPackage()).isEqualTo(context.getPackageName());
   }
 
   @Test
@@ -154,11 +155,12 @@ public class WaOtpUtilsTest {
     mockRetrunedCode(SAMPLE_CODE);
     // Test
     Intent filledOtpLoginIntent = WaOtpUtils.createCodeBroadcasterIntent(intent,
-        BROADCAST_ACTION_LEY);
+        BROADCAST_ACTION_LEY, context);
     // Assertions
     assertThat(filledOtpLoginIntent).isNotNull();
     assertThat(filledOtpLoginIntent.getAction()).isEqualTo(BROADCAST_ACTION_LEY);
     assertThat(filledOtpLoginIntent.getStringExtra("code")).isEqualTo(SAMPLE_CODE);
+    assertThat(filledOtpLoginIntent.getPackage()).isEqualTo(context.getPackageName());
   }
 
   @Test
@@ -167,7 +169,8 @@ public class WaOtpUtilsTest {
     mockSourcePackageFromPendingIntent("other.app.package");
     mockRetrunedCode(SAMPLE_CODE);
     // Test
-    assertThatThrownBy(() -> WaOtpUtils.createCodeBroadcasterIntent(intent, BROADCAST_ACTION_LEY))
+    assertThatThrownBy(
+        () -> WaOtpUtils.createCodeBroadcasterIntent(intent, BROADCAST_ACTION_LEY, context))
         .isInstanceOf(InvalidWhatsAppOtpIntentException.class);
   }
 
@@ -177,7 +180,8 @@ public class WaOtpUtilsTest {
     mockSourcePackageFromPendingIntent(WaClientType.CONSUMER.getPackageName());
     mockRetrunedCode(null);
     // Test
-    assertThatThrownBy(() -> WaOtpUtils.createCodeBroadcasterIntent(intent, BROADCAST_ACTION_LEY))
+    assertThatThrownBy(
+        () -> WaOtpUtils.createCodeBroadcasterIntent(intent, BROADCAST_ACTION_LEY, context))
         .isInstanceOf(InvalidWhatsAppOtpIntentException.class);
   }
 

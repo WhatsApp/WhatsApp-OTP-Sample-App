@@ -1,5 +1,6 @@
 package com.whatsapp.otp.sample.app.activity;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,10 +21,11 @@ public class WhatsAppCodeReceiverActivity extends AppCompatActivity {
     try {
       Intent intent = getIntent();
       if (WaOtpUtils.isWhatsAppIntent(intent)) {
+        final Context applicationContext = getApplicationContext();
         final Intent codeBroadcasterIntent = WaOtpUtils.createCodeBroadcasterIntent(intent,
-            OtpValidatorFragment.OTP_CODE_RECEIVER);
+            OtpValidatorFragment.OTP_CODE_RECEIVER, applicationContext);
         this.getApplicationContext().sendBroadcast(codeBroadcasterIntent);
-        Intent intentLoginActivity = WaOtpUtils.createFilledOtpIntent(getApplicationContext(),
+        Intent intentLoginActivity = WaOtpUtils.createFilledOtpIntent(applicationContext,
             intent,
             Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         this.startActivity(intentLoginActivity);
