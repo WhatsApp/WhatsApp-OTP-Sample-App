@@ -86,7 +86,7 @@ public class WaIntent {
   @NonNull
   public PendingIntent createPendingIntentForOtp(Context context, Intent intent) {
     int flag = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_IMMUTABLE : 0;
-    PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, intent, flag);
+    PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, flag);
     this.extras = addToWaIntentExtras(pendingIntent);
     return pendingIntent;
   }

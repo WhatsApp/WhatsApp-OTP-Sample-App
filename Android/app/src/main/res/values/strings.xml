@@ -17,5 +17,7 @@
     <string name="otp_code_hint">OTP CODE</string>
     <string name="validate_otp">Validate OTP</string>
     <string name="loading_hash_message">Loading ...</string>
+    <string name="checking_whatsapp_installation">Checking WhatsApp...</string>
     <string name="app_signature">Signature:</string>
+    <string name="whatsapp_is_not_installed_on_this_device">WhatsApp is not installed \non this device.</string>
 </resources>

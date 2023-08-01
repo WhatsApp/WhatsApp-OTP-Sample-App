@@ -26,11 +26,25 @@
       android:textAlignment="center"
       android:ems="10"
       android:inputType="phone"
-      app:layout_constraintBottom_toTopOf="@+id/OptionsId"
+      app:layout_constraintBottom_toTopOf="@+id/whatsAppInstalledMessage"
       app:layout_constraintEnd_toEndOf="parent"
       app:layout_constraintStart_toStartOf="parent"
       app:layout_constraintTop_toBottomOf="@+id/title_otp_channel_selector"/>
 
+    <TextView
+      android:id="@+id/whatsAppInstalledMessage"
+      android:textStyle="bold"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:layout_marginBottom="16dp"
+      android:text="@string/checking_whatsapp_installation"
+      android:textSize="10pt"
+      app:layout_constraintBottom_toTopOf="@+id/OptionsId"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintHorizontal_bias="0.498"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@id/editTextPhoneId" />
     <RadioGroup
         android:id="@+id/OptionsId"
         android:layout_width="188dp"
@@ -39,7 +53,7 @@
         app:layout_constraintBottom_toTopOf="@+id/plugins"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/editTextPhoneId">
+        app:layout_constraintTop_toBottomOf="@+id/whatsAppInstalledMessage">
 
         <RadioButton
             android:id="@+id/WhatsAppSelectorId"
@@ -60,15 +74,15 @@
     </RadioGroup>
 
     <LinearLayout
-        android:id="@+id/plugins"
-        android:orientation="vertical"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@+id/request_otp_button_id"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/OptionsId" />
-
+      android:id="@+id/plugins"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      app:layout_constraintBottom_toTopOf="@+id/request_otp_button_id"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintHorizontal_bias="0.498"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/OptionsId" />
     <Button
         android:id="@+id/request_otp_button_id"
         android:layout_width="wrap_content"

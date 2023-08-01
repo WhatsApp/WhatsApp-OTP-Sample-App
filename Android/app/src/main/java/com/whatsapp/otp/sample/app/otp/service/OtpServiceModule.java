@@ -1,8 +1,6 @@
 package com.whatsapp.otp.sample.app.otp.service;
 
 
-import com.whatsapp.otp.sample.app.otp.service.OtpServiceInterface;
-import com.whatsapp.otp.sample.app.otp.service.SampleServerOtpService;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
