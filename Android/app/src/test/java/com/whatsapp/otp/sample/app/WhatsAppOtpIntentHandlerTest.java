@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 
 import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
+import com.whatsapp.otp.android.sdk.WhatsAppOtpHandler;
 import com.whatsapp.otp.sample.app.otp.WhatsAppOtpIntentHandler;
 import com.whatsapp.otp.sample.app.otp.service.OtpServiceInterface;
 import java.util.function.Consumer;
@@ -38,6 +39,8 @@ public class WhatsAppOtpIntentHandlerTest {
 
   @Mock
   private OtpServiceInterface otpServiceInterface;
+
+  private WhatsAppOtpHandler whatsAppOtpHandler = new WhatsAppOtpHandler();
   @Mock
   private Runnable mockedOnSuccessHandler;
   @Mock
@@ -57,7 +60,7 @@ public class WhatsAppOtpIntentHandlerTest {
   public void test_builder_succeeds() {
     // Test
     WhatsAppOtpIntentHandler otpClientHandler = new WhatsAppOtpIntentHandler(
-        otpServiceInterface);
+        otpServiceInterface, whatsAppOtpHandler);
     // Assertions
     assertThat(otpClientHandler).isNotNull();
   }
@@ -65,7 +68,14 @@ public class WhatsAppOtpIntentHandlerTest {
   @Test
   public void test_builderOtpServiceNotProvided_fails() {
     // Test
-    assertThatThrownBy(() -> new WhatsAppOtpIntentHandler(null))
+    assertThatThrownBy(() -> new WhatsAppOtpIntentHandler(null, whatsAppOtpHandler))
+        .isExactlyInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  public void test_builderWhatsAppOtpHandlerNotProvided_fails() {
+    // Test
+    assertThatThrownBy(() -> new WhatsAppOtpIntentHandler(otpServiceInterface, null))
         .isExactlyInstanceOf(NullPointerException.class);
   }
 
@@ -73,7 +83,7 @@ public class WhatsAppOtpIntentHandlerTest {
   public void test_sendOtp_succeeds() {
     // Setup
     WhatsAppOtpIntentHandler otpIntentHandler = new WhatsAppOtpIntentHandler(
-        otpServiceInterface);
+        otpServiceInterface, whatsAppOtpHandler);
 
     // Test
     otpIntentHandler.sendOtp(
@@ -95,7 +105,7 @@ public class WhatsAppOtpIntentHandlerTest {
     doThrow(new RuntimeException()).when(otpServiceInterface)
         .sendOtp(anyString(), any(Runnable.class), any(Consumer.class));
     WhatsAppOtpIntentHandler otpClientHandler = new WhatsAppOtpIntentHandler(
-        otpServiceInterface);
+        otpServiceInterface, whatsAppOtpHandler);
 
     // Test
     otpClientHandler.sendOtp(

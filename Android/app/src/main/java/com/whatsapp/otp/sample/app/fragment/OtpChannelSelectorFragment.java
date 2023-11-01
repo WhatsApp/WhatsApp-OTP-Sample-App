@@ -10,7 +10,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.NavOptions;
 import androidx.navigation.Navigation;
-import com.whatsapp.otp.client.WaIntentHandler;
+import com.whatsapp.otp.android.sdk.WhatsAppOtpHandler;
 import com.whatsapp.otp.common.WaLogger;
 import com.whatsapp.otp.sample.R;
 import com.whatsapp.otp.sample.app.fragment.data.PhoneNumberHolder;
@@ -18,6 +18,7 @@ import com.whatsapp.otp.sample.app.otp.WhatsAppOtpIntentHandler;
 import com.whatsapp.otp.sample.app.signature.AppSignatureRetriever;
 import com.whatsapp.otp.sample.databinding.FragmentOtpSelectChannelBinding;
 import dagger.hilt.android.AndroidEntryPoint;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -34,6 +35,9 @@ public class OtpChannelSelectorFragment extends Fragment {
 
   @Inject
   WhatsAppOtpIntentHandler whatsAppOtpIntentHandler;
+
+  @Inject
+  WhatsAppOtpHandler whatsAppOtpHandler;
 
   @Inject Set<Function<Context, View>> channelSelectorPlugins;
 
@@ -69,7 +73,7 @@ public class OtpChannelSelectorFragment extends Fragment {
   }
 
   private void handleWhatsAppInstalledCheck() {
-    boolean whatsAppInstalled = WaIntentHandler.getNewInstance().isWhatsAppInstalled(getContext());
+    boolean whatsAppInstalled = whatsAppOtpHandler.isWhatsAppInstalled(requireContext());
     if (!whatsAppInstalled) {
       binding.whatsAppInstalledMessage.setText(R.string.whatsapp_is_not_installed_on_this_device);
       binding.whatsAppInstalledMessage.setVisibility(View.VISIBLE);
@@ -84,7 +88,7 @@ public class OtpChannelSelectorFragment extends Fragment {
 
   private void navigateToCodeInputScreen(@androidx.annotation.Nullable Bundle savedInstanceState) {
     this.requireActivity().runOnUiThread(() -> {
-      NavController navController = Navigation.findNavController(this.getActivity(),
+      NavController navController = Navigation.findNavController(this.requireActivity(),
           R.id.nav_host_fragment_content_main);
       navController.navigate(R.id.OtpCodeReceivedValidateActionId,
           savedInstanceState,
