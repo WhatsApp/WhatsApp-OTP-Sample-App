@@ -9,7 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import androidx.test.core.app.ApplicationProvider;
 import com.whatsapp.otp.client.enums.WaClientType;
-import com.whatsapp.otp.sample.app.otp.exceptions.InvalidWhatsAppOtpIntentException;
+import com.whatsapp.otp.android.sdk.exceptions.InvalidWhatsAppOtpIntentException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,6 +26,8 @@ public class WaOtpUtilsTest {
   private static final String BROADCAST_ACTION_LEY = "otp.code.receiver";
   private static final String SAMPLE_CODE = "SAMPLE_CODE";
 
+  private static final String CALLER_INFO = "_ci_";
+
   private final Context context = ApplicationProvider.getApplicationContext();
 
   @Rule
@@ -40,160 +42,26 @@ public class WaOtpUtilsTest {
   @Before
   public void setup() {
     MockitoAnnotations.openMocks(this);
-    doReturn(pendingIntent).when(intent).getParcelableExtra(WaIntent.CALLER_INFO);
-  }
-
-
-  @Test
-  public void test_isWhatsAppIntentPackageIsConsumer_returnsTrue() {
-    // Setup
-    mockSourcePackageFromPendingIntent(WaClientType.CONSUMER.getPackageName());
-
-    // Test
-    boolean result = WaOtpUtils.isWhatsAppIntent(intent);
-
-    // Test
-    assertThat(result).isTrue();
+    doReturn(pendingIntent).when(intent).getParcelableExtra(CALLER_INFO);
   }
 
   @Test
-  public void test_isWhatsAppIntentPackageIsBusiness_returnsTrue() {
-    // Setup
-    mockSourcePackageFromPendingIntent(WaClientType.BUSINESS.getPackageName());
-
+  public void test_createAutofillIntentWithCodeFromConsumerWhatsApp_succeeds() {
     // Test
-    boolean result = WaOtpUtils.isWhatsAppIntent(intent);
-
-    // Test
-    assertThat(result).isTrue();
-  }
-
-  @Test
-  public void test_isWhatsAppIntentPackageIsSomethingElse_returnsTrue() {
-    // Setup
-    mockSourcePackageFromPendingIntent("something.else");
-
-    // Test
-    boolean result = WaOtpUtils.isWhatsAppIntent(intent);
-
-    // Test
-    assertThat(result).isFalse();
-  }
-
-  @Test
-  public void test_isWhatsAppIntentHasNoPendingIntent_returnsFalse() {
-    // Setup
-    doReturn(null).when(intent).getParcelableExtra(WaIntent.CALLER_INFO);
-
-    // Test
-    boolean result = WaOtpUtils.isWhatsAppIntent(intent);
-
-    // Test
-    assertThat(result).isFalse();
-  }
-
-  @Test
-  public void test_createFilledOtpIntentWithCodeFromConsumerWhatsApp_succeeds() {
-    // Setup
-    mockSourcePackageFromPendingIntent(WaClientType.CONSUMER.getPackageName());
-    mockRetrunedCode(SAMPLE_CODE);
-    // Test
-    Intent filledOtpLoginIntent = WaOtpUtils.createFilledOtpIntent(context, intent, 0);
+    Intent filledOtpLoginIntent = WaOtpUtils.createAutofillIntent(context, SAMPLE_CODE, 0);
     // Assertions
     assertThat(filledOtpLoginIntent).isNotNull();
   }
 
-  @Test
-  public void test_createFilledOtpIntentWithCodeFromBusinessWhatsApp_succeeds() {
-    // Setup
-    mockSourcePackageFromPendingIntent(WaClientType.BUSINESS.getPackageName());
-    mockRetrunedCode(SAMPLE_CODE);
-    // Test
-    Intent filledOtpLoginIntent = WaOtpUtils.createFilledOtpIntent(context, intent, 0);
-    // Assertions
-    assertThat(filledOtpLoginIntent).isNotNull();
-  }
-
-  @Test
-  public void test_createFilledOtpIntentFromDifferentPackage_throwsException() {
-    // Setup
-    mockSourcePackageFromPendingIntent("other.app.package");
-    mockRetrunedCode(SAMPLE_CODE);
-    // Test
-    assertThatThrownBy(() -> WaOtpUtils.createFilledOtpIntent(context, intent, 0))
-        .isInstanceOf(InvalidWhatsAppOtpIntentException.class);
-  }
-
-  @Test
-  public void test_createFilledOtpIntentWithNoCode_throwsException() {
-    // Setup
-    mockSourcePackageFromPendingIntent(WaClientType.CONSUMER.getPackageName());
-    mockRetrunedCode(null);
-    // Test
-    assertThatThrownBy(() -> WaOtpUtils.createFilledOtpIntent(context, intent, 0))
-        .isInstanceOf(InvalidWhatsAppOtpIntentException.class);
-  }
 
   @Test
   public void test_createCodeBroadcasterIntentWithCodeFromConsumerWhatsApp_succeeds() {
-    // Setup
-    mockSourcePackageFromPendingIntent(WaClientType.CONSUMER.getPackageName());
-    mockRetrunedCode(SAMPLE_CODE);
     // Test
-    Intent filledOtpLoginIntent = WaOtpUtils.createCodeBroadcasterIntent(intent,
+    Intent filledOtpLoginIntent = WaOtpUtils.createCodeBroadcasterIntent(SAMPLE_CODE,
         BROADCAST_ACTION_LEY, context);
     // Assertions
     assertThat(filledOtpLoginIntent).isNotNull();
     assertThat(filledOtpLoginIntent.getAction()).isEqualTo(BROADCAST_ACTION_LEY);
     assertThat(filledOtpLoginIntent.getPackage()).isEqualTo(context.getPackageName());
-  }
-
-  @Test
-  public void test_createCodeBroadcasterIntentWithCodeFromBusinessWhatsApp_succeeds() {
-    // Setup
-    mockSourcePackageFromPendingIntent(WaClientType.BUSINESS.getPackageName());
-    mockRetrunedCode(SAMPLE_CODE);
-    // Test
-    Intent filledOtpLoginIntent = WaOtpUtils.createCodeBroadcasterIntent(intent,
-        BROADCAST_ACTION_LEY, context);
-    // Assertions
-    assertThat(filledOtpLoginIntent).isNotNull();
-    assertThat(filledOtpLoginIntent.getAction()).isEqualTo(BROADCAST_ACTION_LEY);
-    assertThat(filledOtpLoginIntent.getStringExtra("code")).isEqualTo(SAMPLE_CODE);
-    assertThat(filledOtpLoginIntent.getPackage()).isEqualTo(context.getPackageName());
-  }
-
-  @Test
-  public void test_createCodeBroadcasterIntentFromDifferentPackage_throwsException() {
-    // Setup
-    mockSourcePackageFromPendingIntent("other.app.package");
-    mockRetrunedCode(SAMPLE_CODE);
-    // Test
-    assertThatThrownBy(
-        () -> WaOtpUtils.createCodeBroadcasterIntent(intent, BROADCAST_ACTION_LEY, context))
-        .isInstanceOf(InvalidWhatsAppOtpIntentException.class);
-  }
-
-  @Test
-  public void test_createCodeBroadcasterIntentWithNoCode_throwsException() {
-    // Setup
-    mockSourcePackageFromPendingIntent(WaClientType.CONSUMER.getPackageName());
-    mockRetrunedCode(null);
-    // Test
-    assertThatThrownBy(
-        () -> WaOtpUtils.createCodeBroadcasterIntent(intent, BROADCAST_ACTION_LEY, context))
-        .isInstanceOf(InvalidWhatsAppOtpIntentException.class);
-  }
-
-  private void mockSourcePackageFromPendingIntent(String packageName) {
-    doReturn(packageName)
-        .when(pendingIntent)
-        .getCreatorPackage();
-  }
-
-  private void mockRetrunedCode(String toBeReturnedCode) {
-    doReturn(toBeReturnedCode)
-        .when(intent)
-        .getStringExtra("code");
   }
 }

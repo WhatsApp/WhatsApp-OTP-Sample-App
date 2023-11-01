@@ -66,9 +66,20 @@ It defines the activity (for one tap messages) and the receiver (for zero tap me
 
 ### Handshake
 
-One can copy the code in the package _com.whatsapp.otp.client_ to their application and simply use the code below to the handshake with WhatsApp.
+The handshake is a required step to get either one tap and zero tap behavior for incoming one time password messages.
 
-    WaIntentHandler.getNewInstance().sendOtpIntentToWhatsApp(context)
+To do the handshake this app uses the [WhatsApp-OTP-SDK which is available on Github](https://github.com/WhatsApp/WhatsApp-Android-OTP-SDK/)
+
+Sending an intent to WhatsApp to do the handshake as described on the [Authentication templates document](https://developers.facebook.com/docs/whatsapp/business-management-api/authentication-templates/) is as simple as:
+
+```
+WhatsAppOtpHandler whatsAppOtpHandler = new WhatsAppOtpHandler();
+whatsAppOtpHandler.sendOtpIntentToWhatsApp(context);
+```
+
+This sends the handshake to bot the WhatsApp Consumer app and the WhatsApp Business app.
+
+For additional details check the [SDK documentation](https://github.com/WhatsApp/WhatsApp-Android-OTP-SDK/).
 
 ## Opening the application on Android Studio
 
