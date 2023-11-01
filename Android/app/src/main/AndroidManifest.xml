@@ -42,6 +42,15 @@
         </activity>
 
         <receiver
+            android:name=".app.receiver.OtpCodeReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.whatsapp.otp.OTP_RETRIEVED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
           android:name=".app.otp.OtpErrorReceiver"
           android:enabled="true"
           android:exported="true" >
