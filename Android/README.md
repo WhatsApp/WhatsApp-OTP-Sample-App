@@ -35,7 +35,7 @@ The key reference files are the manifest.xml file, the _WaIntentHandler.java_ cl
 
 ### Manifest.xml
 
-It defines the activity responsible for receiving the code from WhatsApp
+It defines the activity (for one tap messages) and the receiver (for zero tap messages) responsible for receiving the code from WhatsApp
 
     <activity
         android:name=".app.activity.WhatsAppCodeReceiverActivity"
@@ -47,13 +47,22 @@ It defines the activity responsible for receiving the code from WhatsApp
         </intent-filter>
     </activity>
 
-### WhatsAppCodeReceiverActivity.java
 
-This is the Activity responsible for receiving the code from WhatsApp
+    <receiver
+        android:name=".app.receiver.OtpCodeReceiver"
+        android:enabled="true"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="com.whatsapp.otp.OTP_RETRIEVED" />
+        </intent-filter>
+    </receiver>
 
-### WaIntentHandler.java
+### Main Classes
 
-This is the class that has the code responsible for doing the handshake.
+
+- *WhatsAppCodeReceiverActivity.java*: This is the Activity responsible for receiving the code from WhatsApp when customer gets an autofill message.
+- *OtpCodeReceiver.java*: This is the Activity responsible for receiving the code from WhatsApp when customer gets a zero tap message.
+- *WaIntentHandler.java*: This is the class that has the code responsible for doing the handshake.
 
 ### Handshake
 
