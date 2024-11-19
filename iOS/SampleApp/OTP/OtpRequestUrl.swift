@@ -1,5 +1,9 @@
-// Copyright (c) Meta Platforms, Inc. and its affiliates.
-// This source code is licensed under the MIT license found in the LICENSE file in the root directory of this source tree.
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 import Foundation
 
@@ -12,6 +16,10 @@ struct OtpRequestUrl {
     let phoneNumber: String
 
     func url() -> URL? {
-        return URL(string: "\(host):\(port)\(path)/\(phoneNumber)")
+        if #available(iOS 17, *) {
+            return URL(string: "\(host):\(port)\(path)/\(phoneNumber)", encodingInvalidCharacters: false)
+        } else {
+            return URL(string: "\(host):\(port)\(path)/\(phoneNumber)")
+        }
     }
 }

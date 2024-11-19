@@ -42,10 +42,10 @@ public struct ImplementationProvider<DeclarationType: Declaration, InvocationTyp
     return createImplementation()
   }
   
-  func didAddStub<DeclarationType: Declaration>(
+  func didAddStub<DeclarationTypeInner: Declaration>(
     _ stub: StubbingContext.Stub,
     context: Context,
-    manager: StubbingManager<DeclarationType, InvocationType, ReturnType>
+    manager: StubbingManager<DeclarationTypeInner, InvocationType, ReturnType>
   ) {
     guard let callback = self.callback else { return }
     callback(stub, context)
