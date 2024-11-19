@@ -12,6 +12,10 @@ struct OtpRequestUrl {
     let phoneNumber: String
 
     func url() -> URL? {
-        return URL(string: "\(host):\(port)\(path)/\(phoneNumber)")
+        if #available(iOS 17, *) {
+            return URL(string: "\(host):\(port)\(path)/\(phoneNumber)", encodingInvalidCharacters: false)
+        } else {
+            return URL(string: "\(host):\(port)\(path)/\(phoneNumber)")
+        }
     }
 }

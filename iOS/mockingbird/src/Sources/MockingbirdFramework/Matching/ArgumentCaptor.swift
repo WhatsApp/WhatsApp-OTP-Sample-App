@@ -29,12 +29,12 @@ public class ArgumentCaptor<ParameterType>: ArgumentMatcher {
   
   /// Creates an argument matcher that can be passed to a mockable declaration.
   // The generic constraint shadows the class constraint so the ObjC overload is picked up.
-  public func any<ParameterType>() -> ParameterType {
+  public func any<T>() -> T {
     return createTypeFacade(self)
   }
   
   /// Creates an argument matcher that can be passed to a mockable declaration.
-  public func any<ParameterType: NSObjectProtocol>() -> ParameterType {
+  public func any<T: NSObjectProtocol>() -> T {
     return createTypeFacade(self)
   }
 
