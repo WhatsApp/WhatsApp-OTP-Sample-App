@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+
+
 #!/usr/bin/env python3
 
 import json
@@ -116,7 +122,7 @@ request_url = f"""https://graph.facebook.com/v16.0/{waba_id}/phone_numbers\
 ?access_token={access_token}"""
 
 response = requests.get(request_url)
-if (response.status_code != 200):
+if response.status_code != 200:
     print(
         "Error while checking available phone numbers. Your System User is "
         "likely missing permissions or not added to your WABA (please follow "
