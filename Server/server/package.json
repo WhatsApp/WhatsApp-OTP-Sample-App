@@ -4,7 +4,7 @@
   "main": "app.js",
   "type": "module",
   "dependencies": {
-    "axios": "^1.2.0",
+    "axios": "^1.8.2",
     "body-parser": "^1.20.1",
     "express": "^4.21.2"
   }
