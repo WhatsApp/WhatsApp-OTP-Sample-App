@@ -1,0 +1,12 @@
+{
+  "name": "whatsapp-otp-setup",
+  "version": "1.0.0",
+  "description": "WhatsApp OTP setup script - creates authentication template and configuration",
+  "type": "module",
+  "main": "setup.js",
+  "scripts": {
+    "setup": "node setup.js"
+  },
+  "author": "Meta Platforms, Inc.",
+  "license": "MIT"
+}

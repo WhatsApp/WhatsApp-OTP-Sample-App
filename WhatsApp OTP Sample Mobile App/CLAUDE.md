@@ -5,16 +5,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 WhatsApp OTP Sample App demonstrates how to send and receive OTP codes through WhatsApp Business APIs with "one-tap" autofill and copy-code functionality. Multi-platform project with:
-- **Server**: Node.js/Express backend (generates OTP, communicates with WhatsApp Cloud API)
+- **Server**: Available in Python, Node.js, Go, and Java (all generate OTP, communicate with WhatsApp Cloud API)
+- **Setup Scripts**: Available in Python, Bash, and JavaScript (configure WhatsApp API credentials)
 - **Android**: Java app with Dagger Hilt DI, Fragment-based navigation
 - **iOS**: Swift app using MVVM pattern (copy-code only, no one-tap)
 
 ## Build Commands
 
-### Server
+### Server Setup (Run Once)
 ```bash
-cd Server/setup && pip3 install -r requirements.txt && python3 setup.py  # First-time setup
-cd Server/server && npm install && node app.js  # Run server on port 3000
+cd Server/setup && pip3 install -r requirements.txt && python3 setup.py  # Python (recommended)
+cd Server/setup && ./setup.sh  # Bash (requires curl, jq)
+cd Server/setup && npm install && node setup.js  # JavaScript
+```
+
+### Server (Python)
+```bash
+cd Server/python && pip3 install -r requirements.txt && python3 server.py
+```
+
+### Server (Node.js)
+```bash
+cd Server/javascript && npm install && node app.js
+```
+
+### Server (Go)
+```bash
+cd Server/go && go run main.go
+```
+
+### Server (Java)
+```bash
+cd Server/java && mvn compile exec:java
 ```
 
 ### Android
@@ -39,11 +61,12 @@ curl -X POST http://127.0.0.1:3000/otp/15551234567/ \
 
 ## Architecture
 
-### Server (Express.js)
+### Server (Python, Node.js, Go, Java)
+All server implementations provide identical functionality:
 - REST API: `GET /otp/:phone_number` (request OTP), `POST /otp/:phone_number` (verify OTP)
 - In-memory OTP storage with 5-minute TTL and SHA-256 hashing (plaintext never stored)
 - Communicates with Facebook Graph API v21.0 for WhatsApp messaging
-- Security: crypto.randomInt() for OTP generation, crypto.timingSafeEqual() for verification
+- Security: Cryptographically secure random generation, constant-time comparison for verification
 - Max 3 verification attempts per OTP
 - Response codes: 200 (OK), 400 (no code provided), 401 (expired/incorrect/max attempts), 404 (no active code)
 
@@ -65,7 +88,7 @@ curl -X POST http://127.0.0.1:3000/otp/15551234567/ \
 ## Configuration
 
 ### Server
-`Server/setup/whatsapp-info.json` - Created by setup.py with WABA credentials (WABA ID, access token, phone number ID)
+`Server/setup/whatsapp-info.json` - Created by setup scripts with WABA credentials (WABA ID, access token, phone number ID, template ID)
 
 ### Android
 `Android/app/src/main/assets/config.properties`:
@@ -97,5 +120,8 @@ server_domain=http://10.0.2.2:3000  # 10.0.2.2 = host localhost from emulator
 - `UI/LoginViewModel.swift`, `UI/VerifyOtpViewModel.swift` - Business logic
 
 ### Server
-- `Server/server/app.js` - Main Express server with OTP endpoints
-- `Server/setup/setup.py` - Interactive setup for WhatsApp API credentials
+- `Server/setup/` - Setup scripts (Python, Bash, JavaScript) for WhatsApp API configuration
+- `Server/python/server.py` - Python/Flask server (documented)
+- `Server/javascript/app.js` - Node.js/Express server (JSDoc documented)
+- `Server/go/main.go` - Go server (standard library only)
+- `Server/java/src/main/java/com/whatsapp/otp/server/OtpServer.java` - Java server (Javadoc documented)

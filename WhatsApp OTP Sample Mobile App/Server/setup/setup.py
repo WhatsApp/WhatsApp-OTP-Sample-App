@@ -118,7 +118,7 @@ print(
     "recipient phone numbers. If you use the test phone number to send "
     "messages, you MUST verify each one following the instructions above.\n"
 )
-request_url = f"""https://graph.facebook.com/v16.0/{waba_id}/phone_numbers\
+request_url = f"""https://graph.facebook.com/v21.0/{waba_id}/phone_numbers\
 ?access_token={access_token}"""
 
 response = requests.get(request_url)
@@ -235,7 +235,7 @@ else:
 
 # Creating OTP Template
 print("Thank you. Calling WhatsApp API to create OTP template...\n")
-request_url = f"https://graph.facebook.com/v16.0/{waba_id}/message_templates"
+request_url = f"https://graph.facebook.com/v21.0/{waba_id}/message_templates"
 payload = {
     "access_token": access_token,
     "name": template_name,
