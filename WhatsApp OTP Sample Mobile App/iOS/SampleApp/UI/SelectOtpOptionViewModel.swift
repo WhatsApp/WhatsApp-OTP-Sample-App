@@ -13,10 +13,20 @@ struct OtpOption {
 }
 
 protocol RequestOtpProtocol {
+    func requestOtp(to phoneNumber: String) async -> OtpRequestError?
+    @available(*, deprecated, message: "Use async/await version instead")
     func requestOtp(to phoneNumber: String, completion: @escaping (OtpRequestError?) -> Void)
 }
 
 extension RequestOtpProtocol {
+    func requestOtp(to phoneNumber: String) async -> OtpRequestError? {
+        return await OtpRequestHelper.requestOtp(
+            type: .copyCode,
+            to: phoneNumber
+        )
+    }
+
+    @available(*, deprecated, message: "Use async/await version instead")
     func requestOtp(to phoneNumber: String, completion: @escaping (OtpRequestError?) -> Void) {
         OtpRequestHelper.requestOtp(
             type: .copyCode,

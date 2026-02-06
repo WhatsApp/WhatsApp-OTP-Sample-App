@@ -8,8 +8,58 @@
 import Foundation
 
 class OtpRequestHelper {
+    // MARK: - Async/Await API (iOS 15+)
+
     static func requestOtp(
-        type: OtpType, // Only Copy Code is supported, 0/1 tap will be added later
+        type: OtpType,
+        to phoneNumber: String,
+        token: String? = nil
+    ) async -> OtpRequestError? {
+        guard let url = OtpRequestUrl(phoneNumber: phoneNumber).url() else {
+            return .urlInvalid
+        }
+
+        do {
+            let (_, response) = try await get(url: url, token: token)
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 200
+            if statusCode < 300 {
+                return nil
+            } else {
+                return .general("Request failed with status code \(statusCode)")
+            }
+        } catch {
+            return .general(error.localizedDescription)
+        }
+    }
+
+    class func get(url: URL, token: String?) async throws -> (Data, URLResponse) {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        if let token {
+            request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        return try await URLSession.shared.data(for: request)
+    }
+
+    class func post(url: URL, payload: Data, token: String?) async throws -> (Data, URLResponse) {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = payload
+        if let token {
+            request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        return try await URLSession.shared.data(for: request)
+    }
+
+    // MARK: - Legacy Closure-based API (deprecated, for backward compatibility)
+
+    @available(*, deprecated, message: "Use async/await version instead")
+    static func requestOtp(
+        type: OtpType,
         to phoneNumber: String,
         token: String? = nil,
         completion: @escaping (OtpRequestError?) -> Void
@@ -30,7 +80,7 @@ class OtpRequestHelper {
         }
     }
 
-    // MARK: - Network requests
+    @available(*, deprecated, message: "Use async/await version instead")
     class func get(
         url: URL,
         token: String?,
@@ -38,7 +88,6 @@ class OtpRequestHelper {
     ) {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        // Sample server doesn't need a token as it runs locally
         if let token {
             request.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -46,6 +95,7 @@ class OtpRequestHelper {
         URLSession.shared.dataTask(with: request, completionHandler: completion).resume()
     }
 
+    @available(*, deprecated, message: "Use async/await version instead")
     class func post(
         url: URL,
         payload: Data,

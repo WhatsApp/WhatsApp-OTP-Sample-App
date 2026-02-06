@@ -10,7 +10,7 @@ import UIKit
 class LoginViewModel {
     // MARK: - Password validation
     func verifyPassword(_ password: String?) -> Bool {
-        guard password != nil, !password!.isEmpty else {
+        guard let password, !password.isEmpty else {
             return false
         }
 

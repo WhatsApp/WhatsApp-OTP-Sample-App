@@ -16,6 +16,7 @@ class VerifyOtpViewController: UIViewController, UITextFieldDelegate {
         super.viewDidLoad()
 
         oneTimePasscodeTextField.delegate = self
+        oneTimePasscodeTextField.textContentType = .oneTimeCode
     }
 
     /// Call this to autofill OTP when receving response from WA client
@@ -39,13 +40,12 @@ class VerifyOtpViewController: UIViewController, UITextFieldDelegate {
             return
         }
 
-        viewModel.verifyCode(code: code, phoneNumber: phoneNumber.phoneNumberWithCountryCode) { error in
-            DispatchQueue.main.async {
-                if let error {
-                    self.showAlert(message: error.description)
-                } else {
-                    self.showAlert(message: "Verified!")
-                }
+        Task {
+            let error = await viewModel.verifyCode(code: code, phoneNumber: phoneNumber.phoneNumberWithCountryCode)
+            if let error {
+                showAlert(message: error.description)
+            } else {
+                showAlert(message: "Verified!")
             }
         }
     }
