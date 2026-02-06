@@ -6,9 +6,13 @@
  * 1. Phone input step: User enters their WhatsApp phone number
  * 2. OTP input step: User enters the verification code received via WhatsApp
  *
+ * The authentication uses a stateless OTP system with signed challenge tokens.
+ * The challenge token is returned after sending the OTP and must be passed back
+ * during verification.
+ *
  * @module app/page
- * @see {@link app/api/otp/send/route} - API endpoint for sending OTP
- * @see {@link app/api/otp/verify/route} - API endpoint for verifying OTP
+ * @see {@link app/api/otp/send/route} - API endpoint for sending OTP (returns challenge)
+ * @see {@link app/api/otp/verify/route} - API endpoint for verifying OTP (requires challenge)
  * @see {@link app/dashboard/page} - Destination after successful authentication
  */
 
@@ -32,6 +36,7 @@ type Step = 'phone' | 'otp';
  * This client component manages the complete authentication flow including:
  * - Phone number input with validation
  * - OTP code input with 6-digit restriction
+ * - Challenge token storage for stateless verification
  * - Loading states during API calls
  * - Error message display
  * - Navigation between steps
@@ -66,6 +71,13 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
 
   /**
+   * Challenge token for stateless OTP verification.
+   * Received from /api/otp/send and passed to /api/otp/verify.
+   * @type {string}
+   */
+  const [challenge, setChallenge] = useState('');
+
+  /**
    * Error message to display to the user.
    * @type {string}
    */
@@ -81,7 +93,7 @@ export default function LoginPage() {
    * Handles the OTP send form submission.
    *
    * Sends a request to the /api/otp/send endpoint with the user's phone number.
-   * On success, transitions to the OTP input step.
+   * On success, stores the challenge token and transitions to the OTP input step.
    *
    * @async
    * @param {React.FormEvent} e - The form submission event
@@ -106,6 +118,8 @@ export default function LoginPage() {
         return;
       }
 
+      // Store challenge token for verification step
+      setChallenge(data.challenge);
       setStep('otp');
     } catch {
       setError('Network error. Please try again.');
@@ -117,8 +131,8 @@ export default function LoginPage() {
   /**
    * Handles the OTP verification form submission.
    *
-   * Sends a request to the /api/otp/verify endpoint with the phone number and code.
-   * On success, redirects the user to the dashboard page.
+   * Sends a request to the /api/otp/verify endpoint with the phone number,
+   * code, and challenge token. On success, redirects the user to the dashboard page.
    *
    * @async
    * @param {React.FormEvent} e - The form submission event
@@ -133,7 +147,7 @@ export default function LoginPage() {
       const response = await fetch('/api/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, code: otp }),
+        body: JSON.stringify({ phoneNumber, code: otp, challenge }),
       });
 
       const data = await response.json();
@@ -237,6 +251,7 @@ export default function LoginPage() {
               onClick={() => {
                 setStep('phone');
                 setOtp('');
+                setChallenge('');
                 setError('');
               }}
               className="w-full py-2 text-gray-600 hover:text-gray-800"

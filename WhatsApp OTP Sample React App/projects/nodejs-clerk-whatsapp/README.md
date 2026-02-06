@@ -7,7 +7,7 @@ A Next.js application that adds WhatsApp OTP as a second factor to Clerk authent
 This project demonstrates:
 - **Clerk** for primary authentication (email/password, social login)
 - **WhatsApp OTP** as a mandatory second factor after sign-in
-- **Upstash Redis** for OTP storage (or any Redis-compatible store)
+- **Stateless OTP verification** using signed challenge tokens (no Redis/database required)
 - Compatible with **any Node.js hosting** (DigitalOcean, AWS EC2, Railway, Render, etc.)
 
 ## Architecture
@@ -24,13 +24,33 @@ Middleware checks: has user completed WhatsApp 2FA?
   └── NO  ──▶ Redirect to /verify-whatsapp
                   │
                   │ 1. User enters phone number
-                  │ 2. API generates OTP, stores in Redis
+                  │ 2. API generates OTP and signed challenge token
                   │ 3. API sends OTP via Meta Graph API → WhatsApp
                   │ 4. User enters code from WhatsApp
-                  │ 5. API verifies code, updates Clerk session
+                  │ 5. API verifies code against challenge token, updates Clerk session
                   ▼
               Protected page loads
 ```
+
+### Stateless OTP Flow
+
+This project uses **stateless OTP verification** with signed JWT-like challenge tokens:
+
+1. **Send OTP**: When sending an OTP, the server generates:
+   - A random 6-digit OTP code (sent via WhatsApp)
+   - A signed challenge token containing hashes of: userId, phone, OTP code
+   - The challenge token is returned to the client
+
+2. **Verify OTP**: When verifying, the client sends back:
+   - The OTP code entered by the user
+   - The challenge token received from step 1
+   - The server verifies the signature, checks expiry, and compares hashes
+
+**Benefits of this approach:**
+- No Redis or database dependency for OTP storage
+- Horizontally scalable (any server can verify any OTP)
+- Simpler infrastructure requirements
+- Challenge tokens automatically expire (default: 5 minutes)
 
 ## Quick Start
 
@@ -54,8 +74,12 @@ Required variables:
 - `WA_PHONE_NUMBER_ID` - From Meta Developer Console
 - `WA_ACCESS_TOKEN` - Permanent token from System User
 - `WA_TEMPLATE_NAME` - Your approved authentication template
-- `UPSTASH_REDIS_REST_URL` - From Upstash Console (or your Redis URL)
-- `UPSTASH_REDIS_REST_TOKEN` - From Upstash Console
+- `OTP_SIGNING_SECRET` - Secret key for signing challenge tokens (min 32 chars)
+
+Generate a secure signing secret:
+```bash
+openssl rand -base64 32
+```
 
 ### 3. Configure Clerk
 
@@ -130,8 +154,7 @@ Configure your host to:
 │   ├── layout.tsx                             # Root layout with Clerk provider
 │   └── page.tsx                               # Home page
 ├── lib/
-│   ├── otp.ts                                 # OTP generation/verification
-│   ├── redis.ts                               # Redis client
+│   ├── otp.ts                                 # Stateless OTP generation/verification
 │   └── whatsapp.ts                            # Meta Graph API client
 ├── middleware.ts                              # 2FA enforcement
 ├── .env.example
@@ -140,20 +163,15 @@ Configure your host to:
 └── tsconfig.json
 ```
 
-## Differences from Vercel Version
-
-This project is functionally identical to `vercel-clerk-whatsapp` but:
-- Documentation focuses on traditional Node.js hosting
-- Can be deployed anywhere Node.js runs
-- Uses Upstash Redis by default (can be adapted for traditional Redis)
-
 ## Security
 
-- OTPs expire after 10 minutes (configurable)
-- Maximum 3 verification attempts per OTP
-- Rate limiting: 5 OTPs per phone number per hour
-- Constant-time comparison for OTP verification
-- All sensitive data stored in Redis with TTL
+- Challenge tokens expire after 5 minutes (configurable via `OTP_EXPIRY_SECONDS`)
+- Tokens are signed with HS256 to prevent tampering
+- Constant-time comparison for OTP hash verification
+- userId bound to challenge token to prevent token reuse across users
+- SHA-256 hashes stored in tokens (not plaintext values)
+
+**Note on rate limiting**: Since verification is stateless, per-OTP attempt limiting is not enforced server-side. With 6 digits (1M combinations) and a 5-minute window, brute force is impractical. For additional protection, add rate limiting at the edge/CDN level (e.g., Cloudflare, AWS WAF).
 
 ## License
 

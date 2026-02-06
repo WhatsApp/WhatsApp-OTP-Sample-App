@@ -23,7 +23,7 @@ export async function createSession(phoneNumber: string): Promise<string> {
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, secret);
-    return payload as SessionPayload;
+    return payload as unknown as SessionPayload;
   } catch {
     return null;
   }

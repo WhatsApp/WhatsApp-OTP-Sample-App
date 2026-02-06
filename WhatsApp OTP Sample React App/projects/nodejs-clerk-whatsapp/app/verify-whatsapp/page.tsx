@@ -15,10 +15,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
  * The component manages the entire OTP flow including:
  * - Pre-filling phone number from Clerk user data if available
  * - Sending OTP requests to the backend API
+ * - Storing the challenge token received from the send endpoint
  * - Countdown timer for resend cooldown (60 seconds)
- * - OTP verification with the backend
+ * - OTP verification with the backend using the challenge token
  * - Session refresh after successful verification
  * - Redirect to the originally requested protected route
+ *
+ * This implementation uses stateless OTP verification with signed challenge tokens.
+ * The challenge token is stored in component state and passed back during verification.
  *
  * @example
  * // This page is accessed via redirect from middleware when accessing protected routes
@@ -39,6 +43,7 @@ export default function VerifyWhatsAppPage() {
   const [step, setStep] = useState<'phone' | 'verify'>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [challenge, setChallenge] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -62,6 +67,8 @@ export default function VerifyWhatsAppPage() {
       const data = await res.json();
 
       if (data.success) {
+        // Store the challenge token for verification
+        setChallenge(data.challenge);
         setStep('verify');
         setCountdown(60);
         const interval = setInterval(() => {
@@ -89,7 +96,7 @@ export default function VerifyWhatsAppPage() {
       const res = await fetch('/api/whatsapp-otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
+        body: JSON.stringify({ phone, code, challenge }),
       });
       const data = await res.json();
 
@@ -105,6 +112,12 @@ export default function VerifyWhatsAppPage() {
       setError('Network error');
     }
     setLoading(false);
+  };
+
+  const handleResend = () => {
+    setStep('phone');
+    setCode('');
+    setChallenge('');
   };
 
   if (!isLoaded) {
@@ -183,10 +196,7 @@ export default function VerifyWhatsAppPage() {
               `Resend in ${countdown}s`
             ) : (
               <button
-                onClick={() => {
-                  setStep('phone');
-                  setCode('');
-                }}
+                onClick={handleResend}
                 style={{
                   background: 'none',
                   color: '#0070f3',

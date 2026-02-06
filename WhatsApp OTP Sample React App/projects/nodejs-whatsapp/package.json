@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@upstash/redis": "^1.34.3",
     "jose": "^5.9.0",
     "libphonenumber-js": "^1.11.0",
     "next": "^15.1.0",

@@ -24,11 +24,18 @@ type VerificationStep = 'phone' | 'verify';
  *
  * **Authentication Flow Integration:**
  * - Users are redirected here by middleware when accessing protected routes without 2FA
- * - The page calls `/api/whatsapp-otp/send` to generate and send OTP via WhatsApp
- * - The page calls `/api/whatsapp-otp/verify` to validate the entered code
+ * - The page calls `/api/whatsapp-otp/send` to generate OTP and receive a signed challenge token
+ * - The challenge token is stored in component state (stateless verification)
+ * - The page calls `/api/whatsapp-otp/verify` with the challenge token to validate the entered code
  * - On successful verification, Clerk's publicMetadata is updated with `whatsapp_2fa_enabled: true`
  * - The Clerk session is refreshed to include the new claim
  * - User is redirected to the original destination (or /dashboard by default)
+ *
+ * **Stateless OTP Architecture:**
+ * - No server-side storage (Redis) is required
+ * - The challenge token is a signed JWT containing hashed userId, phone, and OTP
+ * - The token expires after 5 minutes
+ * - All verification happens by comparing hashes against the signed token
  *
  * **Features:**
  * - Pre-fills phone number from Clerk user profile if available
@@ -59,6 +66,12 @@ export default function VerifyWhatsAppPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  /**
+   * Signed challenge token from the server.
+   * This JWT contains hashed userId, phone, and OTP for stateless verification.
+   * Must be sent back to the server during OTP verification.
+   */
+  const [challenge, setChallenge] = useState('');
 
   /**
    * Effect to pre-fill the phone number from Clerk user profile.
@@ -76,11 +89,12 @@ export default function VerifyWhatsAppPage() {
    *
    * @description This function calls the `/api/whatsapp-otp/send` endpoint which:
    * 1. Generates a 6-digit OTP code
-   * 2. Stores it in Redis with expiration
-   * 3. Sends it via WhatsApp using Meta Graph API
+   * 2. Creates a signed JWT challenge token
+   * 3. Sends the OTP via WhatsApp using Meta Graph API
+   * 4. Returns the challenge token to be stored client-side
    *
-   * On success, transitions to the 'verify' step and starts a 60-second countdown
-   * before allowing the user to request a new code.
+   * On success, stores the challenge token, transitions to the 'verify' step,
+   * and starts a 60-second countdown before allowing the user to request a new code.
    *
    * @returns Promise that resolves when the API call completes
    */
@@ -96,6 +110,8 @@ export default function VerifyWhatsAppPage() {
       const data = await res.json();
 
       if (data.success) {
+        // Store the challenge token for verification
+        setChallenge(data.challenge);
         setStep('verify');
         setCountdown(60);
         const interval = setInterval(() => {
@@ -120,9 +136,10 @@ export default function VerifyWhatsAppPage() {
    * Verifies the OTP code entered by the user.
    *
    * @description This function calls the `/api/whatsapp-otp/verify` endpoint which:
-   * 1. Validates the OTP code against the stored value in Redis
-   * 2. Updates Clerk's publicMetadata with whatsapp_2fa_enabled: true
-   * 3. Stores the verified phone number in user metadata
+   * 1. Validates the signed challenge token (signature + expiry)
+   * 2. Verifies the OTP code matches the hash in the token
+   * 3. Confirms the userId and phone match the token
+   * 4. Updates Clerk's publicMetadata with whatsapp_2fa_enabled: true
    *
    * On success:
    * - Reloads the Clerk user to refresh session claims
@@ -137,7 +154,7 @@ export default function VerifyWhatsAppPage() {
       const res = await fetch('/api/whatsapp-otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
+        body: JSON.stringify({ phone, code, challenge }),
       });
       const data = await res.json();
 
@@ -153,6 +170,17 @@ export default function VerifyWhatsAppPage() {
       setError('Network error');
     }
     setLoading(false);
+  };
+
+  /**
+   * Handles the "Resend Code" action.
+   * Resets the verification state to allow requesting a new OTP.
+   * Clears the previous challenge token and entered code.
+   */
+  const handleResendCode = (): void => {
+    setStep('phone');
+    setCode('');
+    setChallenge('');
   };
 
   // Show loading state while Clerk is initializing
@@ -232,10 +260,7 @@ export default function VerifyWhatsAppPage() {
               `Resend in ${countdown}s`
             ) : (
               <button
-                onClick={() => {
-                  setStep('phone');
-                  setCode('');
-                }}
+                onClick={handleResendCode}
                 style={{
                   background: 'none',
                   color: '#0070f3',

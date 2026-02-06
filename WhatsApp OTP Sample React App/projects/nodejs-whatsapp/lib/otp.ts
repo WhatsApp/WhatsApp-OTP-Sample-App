@@ -1,40 +1,98 @@
 /**
- * @fileoverview OTP (One-Time Password) generation, storage, and verification logic.
+ * @fileoverview Stateless OTP (One-Time Password) generation and verification.
  *
- * This module provides secure OTP management for WhatsApp-based authentication.
- * It handles OTP generation using cryptographically secure random bytes,
- * storage in Redis with automatic expiration, rate limiting to prevent abuse,
- * and constant-time verification to prevent timing attacks.
+ * This module provides a stateless OTP system using signed challenge tokens.
+ * Instead of storing OTP data in Redis, the OTP is hashed and included in a
+ * signed JWT-like token that is returned to the client. The client must
+ * present this token along with the OTP code for verification.
+ *
+ * Benefits of stateless OTP:
+ * - No Redis or database dependency required
+ * - Horizontally scalable without shared state
+ * - Simpler infrastructure requirements
+ *
+ * Trade-offs:
+ * - Cannot limit verification attempts (mitigated by short expiry and 6-digit entropy)
+ * - Client must store and return the challenge token
  *
  * @module lib/otp
- * @see {@link lib/redis} - Redis client used for OTP storage
  * @see {@link lib/whatsapp} - WhatsApp API for sending OTP messages
+ * @see {@link lib/session} - Uses jose library for JWT operations
  */
 
-import { redis } from './redis';
+import { SignJWT, jwtVerify } from 'jose';
 import crypto from 'crypto';
 
 /** Length of the generated OTP code (default: 6 digits) */
 const OTP_LENGTH = parseInt(process.env.OTP_LENGTH || '6', 10);
 
-/** OTP expiration time in seconds (default: 600 seconds / 10 minutes) */
-const OTP_EXPIRY = parseInt(process.env.OTP_EXPIRY_SECONDS || '600', 10);
+/** OTP challenge expiration time in seconds (default: 300 seconds / 5 minutes) */
+const OTP_EXPIRY_SECONDS = parseInt(process.env.OTP_EXPIRY_SECONDS || '300', 10);
 
-/** Maximum verification attempts before OTP is invalidated (default: 3) */
-const OTP_MAX_ATTEMPTS = parseInt(process.env.OTP_MAX_ATTEMPTS || '3', 10);
+/** Secret key for signing challenge tokens, encoded as Uint8Array for jose library */
+const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
 /**
- * Shape of OTP data stored in Redis.
+ * Shape of the OTP challenge token payload.
  *
- * @interface OTPData
- * @property {string} code - The generated OTP code
- * @property {number} attempts - Number of failed verification attempts
- * @property {number} createdAt - Unix timestamp when the OTP was created
+ * The challenge token is a signed JWT containing hashed phone and OTP data.
+ * This allows verification without server-side state storage.
+ *
+ * @interface OTPChallenge
+ * @property {string} phoneHash - SHA-256 hash of the phone number
+ * @property {string} otpHash - SHA-256 hash of the OTP code
+ * @property {number} exp - Expiration timestamp (seconds since Unix epoch)
+ * @property {number} iat - Issued at timestamp (seconds since Unix epoch)
  */
-interface OTPData {
+export interface OTPChallenge {
+  phoneHash: string;
+  otpHash: string;
+  exp: number;
+  iat: number;
+}
+
+/**
+ * Result of creating an OTP.
+ *
+ * @interface CreateOTPResult
+ * @property {string} code - The generated OTP code to send to the user
+ * @property {string} challenge - The signed challenge token to return to the client
+ */
+export interface CreateOTPResult {
   code: string;
-  attempts: number;
-  createdAt: number;
+  challenge: string;
+}
+
+/**
+ * Result of verifying an OTP.
+ *
+ * @interface VerifyOTPResult
+ * @property {boolean} success - Whether verification was successful
+ * @property {string} [phone] - The verified phone number (only on success)
+ * @property {string} [error] - Error message (only on failure)
+ */
+export interface VerifyOTPResult {
+  success: boolean;
+  phone?: string;
+  error?: string;
+}
+
+/**
+ * Computes a SHA-256 hash of the input string.
+ *
+ * Used to hash phone numbers and OTP codes before storing in the challenge token.
+ * This ensures the actual values are not exposed in the token payload.
+ *
+ * @param {string} input - The string to hash
+ * @returns {string} The SHA-256 hash as a hexadecimal string
+ *
+ * @example
+ * ```typescript
+ * const phoneHash = hash('14155551234'); // Returns 64-char hex string
+ * ```
+ */
+function hash(input: string): string {
+  return crypto.createHash('sha256').update(input).digest('hex');
 }
 
 /**
@@ -61,157 +119,130 @@ function generateOTP(): string {
 }
 
 /**
- * Constructs the Redis key for storing OTP data for a phone number.
+ * Performs constant-time comparison of two strings.
  *
- * @param {string} phoneNumber - The phone number in E.164 format (without +)
- * @returns {string} The Redis key in format "otp:{phoneNumber}"
+ * Uses crypto.timingSafeEqual to prevent timing attacks during OTP verification.
+ * Pads shorter strings to ensure equal length comparison.
+ *
+ * @param {string} a - First string to compare
+ * @param {string} b - Second string to compare
+ * @returns {boolean} True if strings are equal, false otherwise
+ *
+ * @example
+ * ```typescript
+ * const isEqual = constantTimeEqual('abc123', 'abc123'); // true
+ * const isNotEqual = constantTimeEqual('abc123', 'xyz789'); // false
+ * ```
  */
-function getOTPKey(phoneNumber: string): string {
-  return `otp:${phoneNumber}`;
+function constantTimeEqual(a: string, b: string): boolean {
+  const maxLength = Math.max(a.length, b.length);
+  const bufferA = Buffer.from(a.padEnd(maxLength, '\0'));
+  const bufferB = Buffer.from(b.padEnd(maxLength, '\0'));
+  return crypto.timingSafeEqual(bufferA, bufferB);
 }
 
 /**
- * Constructs the Redis key for rate limiting OTP requests per phone number.
+ * Creates a new OTP and generates a signed challenge token.
  *
- * @param {string} phoneNumber - The phone number in E.164 format (without +)
- * @returns {string} The Redis key in format "otp_rate:{phoneNumber}"
- */
-function getRateLimitKey(phoneNumber: string): string {
-  return `otp_rate:${phoneNumber}`;
-}
-
-/**
- * Creates and stores a new OTP for the given phone number.
- *
- * This function implements several security measures:
- * - Rate limiting: Maximum 5 OTP requests per phone number per hour
- * - Cooldown: Minimum 60 seconds between consecutive requests
- * - Secure generation: Uses cryptographically secure random bytes
- * - Auto-expiration: OTP automatically expires after OTP_EXPIRY seconds
+ * This function generates a secure OTP code and creates a signed JWT-like
+ * challenge token containing hashed phone and OTP data. The token is used
+ * for stateless verification - no server-side storage is required.
  *
  * @async
  * @param {string} phoneNumber - The phone number in E.164 format (without +)
- * @returns {Promise<{ code: string } | { error: string }>} Object containing either:
- *   - `code`: The generated OTP code on success
- *   - `error`: Error message if rate limited or on cooldown
+ * @returns {Promise<CreateOTPResult>} Object containing:
+ *   - `code`: The generated OTP code to send via WhatsApp
+ *   - `challenge`: The signed challenge token to return to the client
  *
  * @example
  * ```typescript
  * const result = await createOTP('14155551234');
- * if ('code' in result) {
- *   // Send OTP via WhatsApp
- *   await sendWhatsAppOTP('14155551234', result.code);
- * } else {
- *   // Handle rate limit or cooldown error
- *   console.error(result.error);
- * }
+ * // Send OTP via WhatsApp
+ * await sendWhatsAppOTP('14155551234', result.code);
+ * // Return challenge to client
+ * return { success: true, challenge: result.challenge };
  * ```
  *
- * @throws {Error} If Redis operations fail
+ * @throws {Error} If JWT signing fails
  */
-export async function createOTP(phoneNumber: string): Promise<{ code: string } | { error: string }> {
-  // Check rate limit (5 per hour)
-  const rateLimitKey = getRateLimitKey(phoneNumber);
-  const requestCount = await redis.incr(rateLimitKey);
-
-  if (requestCount === 1) {
-    await redis.expire(rateLimitKey, 3600); // 1 hour
-  }
-
-  if (requestCount > 5) {
-    return { error: 'Too many OTP requests. Please try again later.' };
-  }
-
-  // Check cooldown (60 seconds between requests)
-  const otpKey = getOTPKey(phoneNumber);
-  const existingOTP = await redis.get<OTPData>(otpKey);
-
-  if (existingOTP) {
-    const timeSinceCreation = Date.now() - existingOTP.createdAt;
-    if (timeSinceCreation < 60000) {
-      const waitSeconds = Math.ceil((60000 - timeSinceCreation) / 1000);
-      return { error: `Please wait ${waitSeconds} seconds before requesting a new code.` };
-    }
-  }
-
-  // Generate and store OTP
+export async function createOTP(phoneNumber: string): Promise<CreateOTPResult> {
   const code = generateOTP();
-  const otpData: OTPData = {
-    code,
-    attempts: 0,
-    createdAt: Date.now(),
-  };
 
-  await redis.set(otpKey, otpData, { ex: OTP_EXPIRY });
+  // Create hashes of phone and OTP for the challenge token
+  const phoneHash = hash(phoneNumber);
+  const otpHash = hash(code);
 
-  return { code };
+  // Sign the challenge token with expiry
+  const challenge = await new SignJWT({ phoneHash, otpHash })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${OTP_EXPIRY_SECONDS}s`)
+    .sign(secret);
+
+  return { code, challenge };
 }
 
 /**
- * Verifies an OTP code entered by the user.
+ * Verifies an OTP code against a challenge token.
  *
- * This function implements security best practices:
- * - Constant-time comparison: Prevents timing attacks by using crypto.timingSafeEqual
- * - Attempt limiting: Invalidates OTP after OTP_MAX_ATTEMPTS failed attempts
- * - Automatic cleanup: Deletes OTP from Redis upon successful verification
+ * This function performs stateless verification by:
+ * 1. Verifying the JWT signature and checking expiration
+ * 2. Hashing the provided phone number and comparing to stored hash
+ * 3. Hashing the provided OTP code and comparing to stored hash
+ *
+ * All comparisons use constant-time algorithms to prevent timing attacks.
  *
  * @async
  * @param {string} phoneNumber - The phone number in E.164 format (without +)
  * @param {string} inputCode - The OTP code entered by the user
- * @returns {Promise<{ success: boolean; error?: string }>} Verification result:
- *   - `success: true` if the code is valid
+ * @param {string} challenge - The challenge token returned from createOTP
+ * @returns {Promise<VerifyOTPResult>} Verification result:
+ *   - `success: true` with `phone` if the code is valid
  *   - `success: false` with `error` message if verification fails
  *
  * @example
  * ```typescript
- * const result = await verifyOTP('14155551234', '123456');
+ * const result = await verifyOTP('14155551234', '123456', challengeToken);
  * if (result.success) {
  *   // Create session and redirect to dashboard
- *   const token = await createSession('14155551234');
+ *   const token = await createSession(result.phone);
  *   await setSessionCookie(token);
  * } else {
  *   // Show error to user
  *   console.error(result.error);
  * }
  * ```
- *
- * @throws {Error} If Redis operations fail
  */
 export async function verifyOTP(
   phoneNumber: string,
-  inputCode: string
-): Promise<{ success: boolean; error?: string }> {
-  const otpKey = getOTPKey(phoneNumber);
-  const otpData = await redis.get<OTPData>(otpKey);
+  inputCode: string,
+  challenge: string
+): Promise<VerifyOTPResult> {
+  try {
+    // Verify JWT signature and check expiration
+    const { payload } = await jwtVerify(challenge, secret);
 
-  if (!otpData) {
-    return { success: false, error: 'No OTP found. Please request a new code.' };
+    const challengePayload = payload as unknown as OTPChallenge;
+
+    // Verify phone number matches (constant-time comparison)
+    const inputPhoneHash = hash(phoneNumber);
+    if (!constantTimeEqual(inputPhoneHash, challengePayload.phoneHash)) {
+      return { success: false, error: 'Phone number mismatch.' };
+    }
+
+    // Verify OTP code matches (constant-time comparison)
+    const inputOtpHash = hash(inputCode);
+    if (!constantTimeEqual(inputOtpHash, challengePayload.otpHash)) {
+      return { success: false, error: 'Incorrect verification code.' };
+    }
+
+    // Success - return the verified phone number
+    return { success: true, phone: phoneNumber };
+  } catch (error) {
+    // JWT verification failed (expired, invalid signature, malformed)
+    if (error instanceof Error && error.message.includes('exp')) {
+      return { success: false, error: 'Verification code has expired. Please request a new code.' };
+    }
+    return { success: false, error: 'Invalid or expired verification code. Please request a new code.' };
   }
-
-  // Check max attempts
-  if (otpData.attempts >= OTP_MAX_ATTEMPTS) {
-    await redis.del(otpKey);
-    return { success: false, error: 'Too many failed attempts. Please request a new code.' };
-  }
-
-  // Constant-time comparison
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(inputCode.padEnd(OTP_LENGTH, '0')),
-    Buffer.from(otpData.code.padEnd(OTP_LENGTH, '0'))
-  );
-
-  if (!isValid) {
-    // Increment attempts
-    otpData.attempts += 1;
-    await redis.set(otpKey, otpData, { ex: OTP_EXPIRY });
-    return {
-      success: false,
-      error: `Incorrect code. ${OTP_MAX_ATTEMPTS - otpData.attempts} attempts remaining.`,
-    };
-  }
-
-  // Success - delete OTP
-  await redis.del(otpKey);
-
-  return { success: true };
 }

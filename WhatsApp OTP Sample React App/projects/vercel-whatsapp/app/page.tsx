@@ -15,15 +15,26 @@ type Step = 'phone' | 'otp';
  *
  * @description
  * This is the primary authentication interface for the application. It manages
- * a two-step authentication flow:
+ * a two-step authentication flow using stateless OTP verification:
  * 1. Phone number entry: User provides their WhatsApp phone number
  * 2. OTP verification: User enters the 6-digit code received via WhatsApp
  *
  * The component handles all state management for the auth flow including:
  * - Current step tracking (phone input vs OTP verification)
  * - Form values (phone number and OTP code)
+ * - Challenge token (signed JWT from the server for stateless verification)
  * - Loading states during API calls
  * - Error message display
+ *
+ * The stateless verification flow works as follows:
+ * 1. User submits phone number
+ * 2. Server generates OTP, sends it via WhatsApp, and returns a signed challenge token
+ * 3. Client stores the challenge token in state
+ * 4. User enters the OTP code
+ * 5. Client sends the challenge token + OTP code to the server for verification
+ * 6. Server verifies the token signature, checks expiry, and compares OTP hashes
+ *
+ * This approach eliminates the need for a database (like Redis) to store OTPs.
  *
  * On successful verification, a JWT session is created server-side and the
  * user is redirected to the protected dashboard.
@@ -45,6 +56,7 @@ export default function LoginPage() {
   const [step, setStep] = useState<Step>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
+  const [challenge, setChallenge] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -56,10 +68,12 @@ export default function LoginPage() {
    * It makes a POST request to the /api/otp/send endpoint which:
    * 1. Validates the phone number format
    * 2. Generates a secure 6-digit OTP
-   * 3. Stores the OTP in Redis with expiration
+   * 3. Creates a signed challenge token containing hashed phone and OTP
    * 4. Sends the OTP via WhatsApp using Meta's Cloud API
+   * 5. Returns the challenge token to be stored client-side
    *
-   * On success, the user is moved to the OTP verification step.
+   * On success, the challenge token is stored in state and the user is moved
+   * to the OTP verification step.
    * On failure, an error message is displayed.
    *
    * @param e - The form submission event
@@ -84,6 +98,8 @@ export default function LoginPage() {
         return;
       }
 
+      // Store the challenge token for verification
+      setChallenge(data.challenge);
       setStep('otp');
     } catch {
       setError('Network error. Please try again.');
@@ -97,14 +113,19 @@ export default function LoginPage() {
    *
    * @description
    * This function is triggered when the user submits the OTP code.
-   * It makes a POST request to the /api/otp/verify endpoint which:
-   * 1. Retrieves the stored OTP from Redis
-   * 2. Compares the input code using timing-safe comparison
-   * 3. Tracks verification attempts (max 3 allowed)
-   * 4. On success, creates a JWT session and sets the session cookie
+   * It makes a POST request to the /api/otp/verify endpoint with:
+   * - The phone number
+   * - The OTP code entered by the user
+   * - The challenge token received from the send endpoint
+   *
+   * The server verifies the OTP by:
+   * 1. Validating the challenge token signature (ensures no tampering)
+   * 2. Checking that the token hasn't expired (5-minute window)
+   * 3. Hashing the input code and comparing it to the hash in the token
+   * 4. On success, creating a JWT session and setting the session cookie
    *
    * On successful verification, the user is redirected to /dashboard.
-   * On failure, an error message is displayed with remaining attempts.
+   * On failure, an error message is displayed.
    *
    * @param e - The form submission event
    * @returns Promise that resolves when verification completes
@@ -118,7 +139,7 @@ export default function LoginPage() {
       const response = await fetch('/api/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, code: otp }),
+        body: JSON.stringify({ phoneNumber, code: otp, challenge }),
       });
 
       const data = await response.json();
@@ -134,6 +155,21 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  /**
+   * Handles changing the phone number, resetting the OTP flow.
+   *
+   * @description
+   * Called when the user wants to change their phone number after already
+   * requesting an OTP. This resets the form back to the phone entry step
+   * and clears the OTP, challenge token, and any error messages.
+   */
+  const handleChangePhoneNumber = () => {
+    setStep('phone');
+    setOtp('');
+    setChallenge('');
+    setError('');
   };
 
   return (
@@ -219,11 +255,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={() => {
-                setStep('phone');
-                setOtp('');
-                setError('');
-              }}
+              onClick={handleChangePhoneNumber}
               className="w-full py-2 text-gray-600 hover:text-gray-800"
             >
               Change phone number

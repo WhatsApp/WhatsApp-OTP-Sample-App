@@ -3,11 +3,12 @@
  *
  * This endpoint handles the first step of WhatsApp authentication by:
  * 1. Validating the phone number format
- * 2. Generating a secure OTP code
+ * 2. Generating a secure OTP code and signed challenge token
  * 3. Sending the OTP via WhatsApp template message
+ * 4. Returning the challenge token to the client for stateless verification
  *
  * @module app/api/otp/send/route
- * @see {@link lib/otp} - OTP generation and rate limiting
+ * @see {@link lib/otp} - OTP generation with stateless challenge tokens
  * @see {@link lib/whatsapp} - WhatsApp API integration
  */
 
@@ -22,12 +23,16 @@ import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
  * Request flow:
  * 1. Extract and validate phone number from request body
  * 2. Normalize phone number to E.164 format (digits only)
- * 3. Generate OTP with rate limiting checks
+ * 3. Generate OTP and signed challenge token
  * 4. Send OTP via WhatsApp Cloud API
+ * 5. Return challenge token to client for later verification
+ *
+ * The challenge token is a signed JWT containing hashed phone and OTP data.
+ * The client must store this token and send it back during verification.
  *
  * @async
  * @param {NextRequest} request - The incoming request object
- * @returns {Promise<NextResponse>} JSON response with success status or error
+ * @returns {Promise<NextResponse>} JSON response with success status, challenge token, or error
  *
  * @example
  * ```typescript
@@ -40,12 +45,12 @@ import { parsePhoneNumber, isValidPhoneNumber } from 'libphonenumber-js';
  *
  * const data = await response.json();
  * if (data.success) {
- *   // Proceed to OTP input step
+ *   // Store challenge token for verification step
+ *   setChallengeToken(data.challenge);
  * }
  * ```
  *
  * @throws {400} If phone number is missing or invalid format
- * @throws {429} If rate limited (too many OTP requests)
  * @throws {500} If WhatsApp API fails or internal error occurs
  */
 export async function POST(request: NextRequest) {
@@ -72,15 +77,11 @@ export async function POST(request: NextRequest) {
     const parsed = parsePhoneNumber(phoneNumber);
     const normalizedPhone = parsed?.format('E.164').replace('+', '') || phoneNumber;
 
-    // Create OTP
-    const result = await createOTP(normalizedPhone);
-
-    if ('error' in result) {
-      return NextResponse.json({ error: result.error }, { status: 429 });
-    }
+    // Create OTP and challenge token
+    const { code, challenge } = await createOTP(normalizedPhone);
 
     // Send via WhatsApp
-    const sendResult = await sendWhatsAppOTP(normalizedPhone, result.code);
+    const sendResult = await sendWhatsAppOTP(normalizedPhone, code);
 
     if (!sendResult.success) {
       return NextResponse.json(
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'OTP sent successfully',
+      challenge,
     });
   } catch (error) {
     console.error('Send OTP error:', error);
