@@ -1,2 +1,0 @@
-phonenumbers==8.13.1
-requests==2.32.4
