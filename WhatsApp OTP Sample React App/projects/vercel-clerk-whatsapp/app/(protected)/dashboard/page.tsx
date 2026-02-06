@@ -1,12 +1,57 @@
 import { currentUser } from '@clerk/nextjs/server';
 
+/**
+ * Type definition for user public metadata containing WhatsApp 2FA information.
+ */
+interface WhatsApp2FAMetadata {
+  /**
+   * The phone number verified via WhatsApp OTP.
+   */
+  whatsapp_2fa_phone?: string;
+
+  /**
+   * Whether WhatsApp 2FA has been successfully completed.
+   * @default false
+   */
+  whatsapp_2fa_enabled?: boolean;
+}
+
+/**
+ * Protected Dashboard Page Component.
+ *
+ * @description This is a server component that displays user information after
+ * successful completion of both Clerk authentication and WhatsApp 2FA verification.
+ * It serves as the final destination in the authentication flow and demonstrates
+ * access to protected content.
+ *
+ * **Access Requirements:**
+ * - User must be authenticated via Clerk
+ * - User must have completed WhatsApp 2FA (whatsapp_2fa_enabled: true in publicMetadata)
+ * - Middleware enforces these requirements before this page can be accessed
+ *
+ * **Displayed Information:**
+ * - WhatsApp 2FA verification status and verified phone number
+ * - User details from Clerk (name, email, user ID)
+ * - Confirmation that both authentication layers are complete
+ *
+ * This component uses server-side data fetching with `currentUser()` to access
+ * the authenticated user's information directly on the server.
+ *
+ * @returns Promise resolving to the dashboard UI with user information
+ *
+ * @see {@link ProtectedLayout} - Parent layout wrapping this page
+ * @see {@link VerifyWhatsAppPage} - 2FA verification that precedes access to this page
+ * @see {@link Home} - Entry point where authentication begins
+ *
+ * @example
+ * // This component is rendered at /dashboard
+ * // Users are redirected here after completing WhatsApp 2FA verification
+ * // Access flow: Home -> Sign In -> Verify WhatsApp -> Dashboard
+ */
 export default async function DashboardPage() {
   const user = await currentUser();
 
-  const metadata = user?.publicMetadata as {
-    whatsapp_2fa_phone?: string;
-    whatsapp_2fa_enabled?: boolean;
-  };
+  const metadata = user?.publicMetadata as WhatsApp2FAMetadata | undefined;
 
   return (
     <div

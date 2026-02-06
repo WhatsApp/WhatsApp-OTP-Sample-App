@@ -1,12 +1,48 @@
 import { currentUser } from '@clerk/nextjs/server';
 
+/**
+ * User metadata type definition for WhatsApp 2FA status.
+ *
+ * @description Represents the structure of public metadata stored in Clerk
+ * after successful WhatsApp 2FA verification.
+ */
+interface WhatsApp2FAMetadata {
+  /** The phone number that was verified via WhatsApp OTP */
+  whatsapp_2fa_phone?: string;
+  /** Flag indicating whether WhatsApp 2FA has been completed */
+  whatsapp_2fa_enabled?: boolean;
+}
+
+/**
+ * Dashboard page component displaying user information after successful 2FA.
+ *
+ * @description This is a protected server component that can only be accessed
+ * after completing both Clerk authentication and WhatsApp 2FA verification.
+ * The middleware enforces this protection by checking session claims.
+ *
+ * The dashboard displays:
+ * - WhatsApp 2FA verification status with the verified phone number
+ * - User details (name, email, user ID) from Clerk
+ * - Information about the dual-layer protection
+ *
+ * As a server component, it fetches user data directly from Clerk's server SDK,
+ * avoiding client-side data fetching and providing better security.
+ *
+ * @example
+ * // Accessed after completing full authentication flow
+ * // URL: /dashboard
+ * // Requires: Clerk auth + WhatsApp 2FA verification
+ *
+ * @see {@link middleware.ts} - Enforces 2FA requirement for this route
+ * @see {@link app/verify-whatsapp/page.tsx} - WhatsApp verification page
+ * @see {@link app/(protected)/layout.tsx} - Protected layout wrapper
+ *
+ * @returns The dashboard page with user information and 2FA status
+ */
 export default async function DashboardPage() {
   const user = await currentUser();
 
-  const metadata = user?.publicMetadata as {
-    whatsapp_2fa_phone?: string;
-    whatsapp_2fa_enabled?: boolean;
-  };
+  const metadata = user?.publicMetadata as WhatsApp2FAMetadata;
 
   return (
     <div

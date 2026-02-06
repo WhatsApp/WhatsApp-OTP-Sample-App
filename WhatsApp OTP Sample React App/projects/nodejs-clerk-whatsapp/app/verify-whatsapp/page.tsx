@@ -4,6 +4,32 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+/**
+ * WhatsApp verification page component for two-factor authentication.
+ *
+ * @description This page handles the WhatsApp 2FA verification flow after a user
+ * has completed primary authentication via Clerk. It presents a two-step process:
+ * 1. Phone entry step - User enters their WhatsApp phone number
+ * 2. Verification step - User enters the OTP code received via WhatsApp
+ *
+ * The component manages the entire OTP flow including:
+ * - Pre-filling phone number from Clerk user data if available
+ * - Sending OTP requests to the backend API
+ * - Countdown timer for resend cooldown (60 seconds)
+ * - OTP verification with the backend
+ * - Session refresh after successful verification
+ * - Redirect to the originally requested protected route
+ *
+ * @example
+ * // This page is accessed via redirect from middleware when accessing protected routes
+ * // URL: /verify-whatsapp?redirect_url=/dashboard
+ *
+ * @see {@link middleware.ts} - Middleware that redirects unauthenticated 2FA users here
+ * @see {@link app/api/whatsapp-otp/send/route.ts} - API route for sending OTP
+ * @see {@link app/api/whatsapp-otp/verify/route.ts} - API route for verifying OTP
+ *
+ * @returns The WhatsApp verification UI with phone input or OTP verification form
+ */
 export default function VerifyWhatsAppPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();

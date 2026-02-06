@@ -1,13 +1,53 @@
+/**
+ * @fileoverview Protected dashboard page for authenticated users.
+ *
+ * This server component displays the main application content after
+ * successful WhatsApp OTP authentication. It verifies the user's session
+ * and provides sign-out functionality.
+ *
+ * @module app/dashboard/page
+ * @see {@link lib/session} - Session management for authentication
+ * @see {@link app/page} - Login page users are redirected to on sign-out
+ * @see {@link middleware} - Route protection that guards this page
+ */
+
 import { getSession, clearSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 
+/**
+ * Server action to handle user sign-out.
+ *
+ * Clears the session cookie and redirects the user to the login page.
+ * This function is marked with 'use server' for Next.js server actions.
+ *
+ * @async
+ * @returns {Promise<never>} Redirects to login, never returns
+ */
 async function handleSignOut() {
   'use server';
   await clearSession();
   redirect('/');
 }
 
+/**
+ * Dashboard page component displaying user information after authentication.
+ *
+ * This is a server component that:
+ * - Retrieves and validates the current session
+ * - Redirects unauthenticated users to the login page
+ * - Displays the authenticated user's phone number
+ * - Provides a sign-out button using server actions
+ *
+ * @async
+ * @returns {Promise<JSX.Element>} The dashboard page UI
+ *
+ * @example
+ * ```tsx
+ * // This page is automatically rendered by Next.js at /dashboard
+ * // Users are redirected here after successful OTP verification
+ * ```
+ */
 export default async function DashboardPage() {
   const session = await getSession();
 

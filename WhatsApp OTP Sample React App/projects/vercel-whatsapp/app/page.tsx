@@ -3,8 +3,43 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+/**
+ * Represents the current step in the authentication flow.
+ * - 'phone': User is entering their phone number
+ * - 'otp': User is entering the verification code sent to their WhatsApp
+ */
 type Step = 'phone' | 'otp';
 
+/**
+ * LoginPage - Main authentication component for WhatsApp OTP login.
+ *
+ * @description
+ * This is the primary authentication interface for the application. It manages
+ * a two-step authentication flow:
+ * 1. Phone number entry: User provides their WhatsApp phone number
+ * 2. OTP verification: User enters the 6-digit code received via WhatsApp
+ *
+ * The component handles all state management for the auth flow including:
+ * - Current step tracking (phone input vs OTP verification)
+ * - Form values (phone number and OTP code)
+ * - Loading states during API calls
+ * - Error message display
+ *
+ * On successful verification, a JWT session is created server-side and the
+ * user is redirected to the protected dashboard.
+ *
+ * @example
+ * // This component is rendered at the root route '/'
+ * // Usage in app router:
+ * // app/page.tsx
+ * export default function LoginPage() { ... }
+ *
+ * @see {@link DashboardPage} - The protected page users are redirected to after login
+ * @see {@link /api/otp/send} - API route for sending OTP codes
+ * @see {@link /api/otp/verify} - API route for verifying OTP codes
+ *
+ * @returns The login page UI with phone input or OTP verification form
+ */
 export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('phone');
@@ -13,6 +48,23 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Handles the phone number submission and sends an OTP to the user's WhatsApp.
+   *
+   * @description
+   * This function is triggered when the user submits their phone number.
+   * It makes a POST request to the /api/otp/send endpoint which:
+   * 1. Validates the phone number format
+   * 2. Generates a secure 6-digit OTP
+   * 3. Stores the OTP in Redis with expiration
+   * 4. Sends the OTP via WhatsApp using Meta's Cloud API
+   *
+   * On success, the user is moved to the OTP verification step.
+   * On failure, an error message is displayed.
+   *
+   * @param e - The form submission event
+   * @returns Promise that resolves when the API call completes
+   */
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -40,6 +92,23 @@ export default function LoginPage() {
     }
   };
 
+  /**
+   * Handles OTP verification and completes the authentication flow.
+   *
+   * @description
+   * This function is triggered when the user submits the OTP code.
+   * It makes a POST request to the /api/otp/verify endpoint which:
+   * 1. Retrieves the stored OTP from Redis
+   * 2. Compares the input code using timing-safe comparison
+   * 3. Tracks verification attempts (max 3 allowed)
+   * 4. On success, creates a JWT session and sets the session cookie
+   *
+   * On successful verification, the user is redirected to /dashboard.
+   * On failure, an error message is displayed with remaining attempts.
+   *
+   * @param e - The form submission event
+   * @returns Promise that resolves when verification completes
+   */
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

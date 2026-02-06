@@ -1,6 +1,29 @@
 import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
 
+/**
+ * Home page component serving as the application landing page.
+ *
+ * @description This is the public entry point of the WhatsApp OTP Sample App.
+ * It provides different UI based on the user's authentication state:
+ *
+ * - **Signed Out**: Displays a welcome message with a sign-in button that
+ *   opens Clerk's modal authentication flow
+ * - **Signed In**: Shows the user button for account management and a link
+ *   to navigate to the protected dashboard
+ *
+ * This page does not require any authentication and serves as the starting
+ * point for the 2FA demonstration flow.
+ *
+ * @example
+ * // Accessed directly at the root URL
+ * // URL: /
+ *
+ * @see {@link app/(auth)/sign-in/[[...sign-in]]/page.tsx} - Full-page sign-in alternative
+ * @see {@link app/(protected)/dashboard/page.tsx} - Protected dashboard destination
+ *
+ * @returns The home page with conditional authentication UI
+ */
 export default function Home() {
   return (
     <main

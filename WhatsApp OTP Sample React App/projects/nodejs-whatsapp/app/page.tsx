@@ -1,18 +1,92 @@
+/**
+ * @fileoverview Login page with WhatsApp OTP authentication flow.
+ *
+ * This is the main entry point for user authentication. It implements a
+ * two-step authentication flow:
+ * 1. Phone input step: User enters their WhatsApp phone number
+ * 2. OTP input step: User enters the verification code received via WhatsApp
+ *
+ * @module app/page
+ * @see {@link app/api/otp/send/route} - API endpoint for sending OTP
+ * @see {@link app/api/otp/verify/route} - API endpoint for verifying OTP
+ * @see {@link app/dashboard/page} - Destination after successful authentication
+ */
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+/**
+ * Type representing the current step in the authentication flow.
+ *
+ * @typedef {'phone' | 'otp'} Step
+ * @property {'phone'} phone - User is entering their phone number
+ * @property {'otp'} otp - User is entering the verification code
+ */
 type Step = 'phone' | 'otp';
 
+/**
+ * Login page component implementing WhatsApp OTP authentication.
+ *
+ * This client component manages the complete authentication flow including:
+ * - Phone number input with validation
+ * - OTP code input with 6-digit restriction
+ * - Loading states during API calls
+ * - Error message display
+ * - Navigation between steps
+ *
+ * @returns {JSX.Element} The login page UI
+ *
+ * @example
+ * ```tsx
+ * // This page is automatically rendered by Next.js at the root route
+ * // Access it by navigating to "/"
+ * ```
+ */
 export default function LoginPage() {
   const router = useRouter();
+
+  /**
+   * Current authentication step.
+   * @type {Step}
+   */
   const [step, setStep] = useState<Step>('phone');
+
+  /**
+   * User's phone number input value.
+   * @type {string}
+   */
   const [phoneNumber, setPhoneNumber] = useState('');
+
+  /**
+   * OTP code input value.
+   * @type {string}
+   */
   const [otp, setOtp] = useState('');
+
+  /**
+   * Error message to display to the user.
+   * @type {string}
+   */
   const [error, setError] = useState('');
+
+  /**
+   * Loading state for API operations.
+   * @type {boolean}
+   */
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Handles the OTP send form submission.
+   *
+   * Sends a request to the /api/otp/send endpoint with the user's phone number.
+   * On success, transitions to the OTP input step.
+   *
+   * @async
+   * @param {React.FormEvent} e - The form submission event
+   * @returns {Promise<void>}
+   */
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -40,6 +114,16 @@ export default function LoginPage() {
     }
   };
 
+  /**
+   * Handles the OTP verification form submission.
+   *
+   * Sends a request to the /api/otp/verify endpoint with the phone number and code.
+   * On success, redirects the user to the dashboard page.
+   *
+   * @async
+   * @param {React.FormEvent} e - The form submission event
+   * @returns {Promise<void>}
+   */
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

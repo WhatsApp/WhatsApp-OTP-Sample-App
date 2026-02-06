@@ -4,27 +4,87 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+/**
+ * Type definition for the verification step state.
+ * - 'phone': User is entering their WhatsApp phone number
+ * - 'verify': User is entering the OTP code received via WhatsApp
+ */
+type VerificationStep = 'phone' | 'verify';
+
+/**
+ * WhatsApp OTP Verification Page Component.
+ *
+ * @description This is the main container component that manages the entire WhatsApp OTP
+ * verification flow. It serves as the second factor authentication (2FA) gate between
+ * Clerk authentication and access to protected routes.
+ *
+ * The component implements a two-step verification process:
+ * 1. **Phone Step**: User enters their WhatsApp phone number
+ * 2. **Verify Step**: User enters the 6-digit OTP code received via WhatsApp
+ *
+ * **Authentication Flow Integration:**
+ * - Users are redirected here by middleware when accessing protected routes without 2FA
+ * - The page calls `/api/whatsapp-otp/send` to generate and send OTP via WhatsApp
+ * - The page calls `/api/whatsapp-otp/verify` to validate the entered code
+ * - On successful verification, Clerk's publicMetadata is updated with `whatsapp_2fa_enabled: true`
+ * - The Clerk session is refreshed to include the new claim
+ * - User is redirected to the original destination (or /dashboard by default)
+ *
+ * **Features:**
+ * - Pre-fills phone number from Clerk user profile if available
+ * - 60-second countdown timer before allowing resend
+ * - Error handling for network and validation errors
+ * - Loading states during API calls
+ *
+ * @returns The WhatsApp verification UI with phone input or OTP input based on current step
+ *
+ * @see {@link Home} - Entry point that leads to sign-in
+ * @see {@link DashboardPage} - Destination after successful verification
+ * @see {@link ProtectedLayout} - Layout wrapper for protected routes
+ *
+ * @example
+ * // This component is rendered at /verify-whatsapp
+ * // Users are typically redirected here by middleware:
+ * // middleware.ts redirects to /verify-whatsapp?redirect_url=/dashboard
+ */
 export default function VerifyWhatsAppPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect_url') || '/dashboard';
 
-  const [step, setStep] = useState<'phone' | 'verify'>('phone');
+  const [step, setStep] = useState<VerificationStep>('phone');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  // Pre-fill phone if user has one in Clerk
+  /**
+   * Effect to pre-fill the phone number from Clerk user profile.
+   * If the user has a primary phone number stored in Clerk, it will be
+   * automatically populated in the phone input field.
+   */
   useEffect(() => {
     if (isLoaded && user?.primaryPhoneNumber) {
       setPhone(user.primaryPhoneNumber.phoneNumber);
     }
   }, [isLoaded, user]);
 
-  const requestOTP = async () => {
+  /**
+   * Requests an OTP to be sent to the user's WhatsApp number.
+   *
+   * @description This function calls the `/api/whatsapp-otp/send` endpoint which:
+   * 1. Generates a 6-digit OTP code
+   * 2. Stores it in Redis with expiration
+   * 3. Sends it via WhatsApp using Meta Graph API
+   *
+   * On success, transitions to the 'verify' step and starts a 60-second countdown
+   * before allowing the user to request a new code.
+   *
+   * @returns Promise that resolves when the API call completes
+   */
+  const requestOTP = async (): Promise<void> => {
     setError('');
     setLoading(true);
     try {
@@ -56,7 +116,21 @@ export default function VerifyWhatsAppPage() {
     setLoading(false);
   };
 
-  const verifyOTP = async () => {
+  /**
+   * Verifies the OTP code entered by the user.
+   *
+   * @description This function calls the `/api/whatsapp-otp/verify` endpoint which:
+   * 1. Validates the OTP code against the stored value in Redis
+   * 2. Updates Clerk's publicMetadata with whatsapp_2fa_enabled: true
+   * 3. Stores the verified phone number in user metadata
+   *
+   * On success:
+   * - Reloads the Clerk user to refresh session claims
+   * - Redirects to the original destination URL
+   *
+   * @returns Promise that resolves when verification completes
+   */
+  const verifyOTP = async (): Promise<void> => {
     setError('');
     setLoading(true);
     try {
@@ -81,6 +155,7 @@ export default function VerifyWhatsAppPage() {
     setLoading(false);
   };
 
+  // Show loading state while Clerk is initializing
   if (!isLoaded) {
     return (
       <div style={{ textAlign: 'center', marginTop: 80 }}>Loading...</div>

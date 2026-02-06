@@ -2,12 +2,56 @@ import { getSession, clearSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 
+/**
+ * Server action to handle user sign out.
+ *
+ * @description
+ * This is a Next.js Server Action that clears the user's session
+ * and redirects them back to the login page. It is triggered when
+ * the user clicks the "Sign out" button.
+ *
+ * The function:
+ * 1. Clears the session cookie from the browser
+ * 2. Redirects the user to the root route (/)
+ *
+ * @returns Never returns - always redirects to the login page
+ */
 async function handleSignOut() {
   'use server';
   await clearSession();
   redirect('/');
 }
 
+/**
+ * DashboardPage - Protected page displaying authenticated user information.
+ *
+ * @description
+ * This is an async Server Component that serves as the main protected area
+ * of the application. It is only accessible to authenticated users who have
+ * completed the WhatsApp OTP verification flow.
+ *
+ * The component performs the following:
+ * 1. Retrieves the current session from the JWT cookie
+ * 2. Redirects unauthenticated users to the login page
+ * 3. Displays the authenticated user's phone number
+ * 4. Provides a sign-out button to end the session
+ *
+ * Route protection is enforced at two levels:
+ * - Middleware level: Redirects unauthenticated requests before reaching this page
+ * - Component level: Double-checks session validity as a safety measure
+ *
+ * @example
+ * // This component is rendered at /dashboard route
+ * // Users are redirected here after successful OTP verification
+ * // Access is protected by middleware.ts
+ *
+ * @see {@link LoginPage} - The authentication page users come from
+ * @see {@link middleware} - Route protection middleware
+ * @see {@link getSession} - Session retrieval function from lib/session.ts
+ * @see {@link clearSession} - Session clearing function used by sign out
+ *
+ * @returns The dashboard UI with user info and sign out functionality
+ */
 export default async function DashboardPage() {
   const session = await getSession();
 
