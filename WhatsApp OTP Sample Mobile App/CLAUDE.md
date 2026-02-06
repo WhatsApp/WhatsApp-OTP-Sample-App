@@ -34,16 +34,18 @@ Build and test via Xcode (`iOS/SampleApp.xcodeproj`). Cmd+B to build, Cmd+R to r
 ```bash
 curl -X GET http://127.0.0.1:3000/otp/15551234567/           # Request OTP
 curl -X POST http://127.0.0.1:3000/otp/15551234567/ \
-  -d '{"code": "12345"}' -H "Content-Type: application/json"  # Verify OTP
+  -d '{"code": "123456"}' -H "Content-Type: application/json"  # Verify OTP
 ```
 
 ## Architecture
 
 ### Server (Express.js)
 - REST API: `GET /otp/:phone_number` (request OTP), `POST /otp/:phone_number` (verify OTP)
-- In-memory OTP storage with 5-minute TTL
-- Communicates with Facebook Graph API v16.0 for WhatsApp messaging
-- Response codes: 200 (OK), 400 (no code provided), 401 (expired/incorrect), 404 (no active code)
+- In-memory OTP storage with 5-minute TTL and SHA-256 hashing (plaintext never stored)
+- Communicates with Facebook Graph API v21.0 for WhatsApp messaging
+- Security: crypto.randomInt() for OTP generation, crypto.timingSafeEqual() for verification
+- Max 3 verification attempts per OTP
+- Response codes: 200 (OK), 400 (no code provided), 401 (expired/incorrect/max attempts), 404 (no active code)
 
 ### Android
 - **Dependency Injection**: Dagger Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@Inject`)

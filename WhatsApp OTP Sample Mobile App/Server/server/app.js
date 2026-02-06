@@ -8,6 +8,7 @@
 import axios from 'axios';
 import bodyParser from 'body-parser';
 import { assert } from 'console';
+import crypto from 'crypto';
 import express from 'express';
 import fs from 'fs';
 import { exit } from 'process';
@@ -16,20 +17,46 @@ const app = express();
 
 const port = 3000;
 
-const codeLength = 5;
+const codeLength = 6;
 const codeLifetimeInMinutes = 5;
+const maxVerificationAttempts = 3;
 
 const filename = "whatsapp-info.json";
 
-const apiVersion = "v16.0";
+const apiVersion = "v21.0";
 
 let activeCodes = {};
 
+/**
+ * Generate a cryptographically secure OTP code.
+ * Uses crypto.randomInt() which provides uniform distribution.
+ */
 function generateCode() {
-  // e.g. for code_length = 5, between 0 and 99999 (100000 - 1 = 10^5 - 1)
-  const rawCode = Math.floor(Math.random() * (10 ** codeLength));
-  // pad with leading zeroes, so e.g. 134 => 00134
-  return rawCode.toString().padStart(codeLength, '0');
+  // Generate a random number between 100000 and 999999 (6 digits)
+  return crypto.randomInt(10 ** (codeLength - 1), 10 ** codeLength).toString();
+}
+
+/**
+ * Hash an OTP code using SHA-256.
+ * The plaintext code is never stored - only the hash.
+ */
+function hashCode(code) {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
+/**
+ * Verify a code using constant-time comparison to prevent timing attacks.
+ */
+function verifyCode(providedCode, storedHash) {
+  const providedHash = hashCode(providedCode);
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(storedHash, 'hex'),
+      Buffer.from(providedHash, 'hex')
+    );
+  } catch {
+    return false;
+  }
 }
 
 let data;
@@ -95,8 +122,17 @@ app.use((_req, res, next) => {
   console.log("Current time: ", new Date());
   res.on('finish', () => {
     console.log(`Response (${res.statusCode}): ${res.statusMessage}`);
-    console.log("Active codes state:")
-    console.table(activeCodes);
+    console.log("Active codes state (hashes shown, not plaintext):");
+    // Show truncated hashes for readability
+    const displayCodes = {};
+    for (const [phone, data] of Object.entries(activeCodes)) {
+      displayCodes[phone] = {
+        codeHash: data.codeHash.substring(0, 16) + '...',
+        expirationTimestamp: data.expirationTimestamp,
+        attempts: data.attempts
+      };
+    }
+    console.table(displayCodes);
     console.log()
   });
 
@@ -128,7 +164,8 @@ app.get('/otp/:phone_number', async (req, res) => {
     template: {
       name: templateName,
       language: {
-        code: "en_US"
+        code: "en_US",
+        policy: "deterministic"
       },
       components: [
         {
@@ -156,7 +193,12 @@ app.get('/otp/:phone_number', async (req, res) => {
   };
 
   await axios.post(sendMessageURL, payload, config).then((_res) => {
-    activeCodes[phone] = { code, expirationTimestamp };
+    // Store the hash of the code, not the plaintext
+    activeCodes[phone] = {
+      codeHash: hashCode(code),
+      expirationTimestamp,
+      attempts: 0
+    };
     res.send();
   }).catch((error) => {
     const errorCode = error.response?.status;
@@ -171,21 +213,46 @@ app.post('/otp/:phone_number', (req, res) => {
   const phone = req.params.phone_number;
   console.log(`OTP validation request for phone # ${phone}`);
 
-  const { code: expectedCode, expirationTimestamp } = activeCodes[phone];
-  if (expectedCode == null) {
+  const activeCode = activeCodes[phone];
+  if (activeCode == null) {
     return res.status(404).send(`No active code for phone # ${phone}`);
   }
+
+  const { codeHash, expirationTimestamp, attempts } = activeCode;
 
   const actualCode = req.body?.code;
   if (actualCode == null) {
     return res.status(400).send("No code provided.");
-  } else if (expirationTimestamp < Date.now()) {
-    delete activeCodes[phone];
-    return res.status(401).send("Code has expired, please request another.");
-  } else if (actualCode !== expectedCode) {
-    return res.status(401).send("Incorrect code.");
   }
 
+  // Check if code has expired
+  if (expirationTimestamp < Date.now()) {
+    delete activeCodes[phone];
+    return res.status(401).send("Code has expired, please request another.");
+  }
+
+  // Check if max attempts exceeded
+  if (attempts >= maxVerificationAttempts) {
+    delete activeCodes[phone];
+    return res.status(401).send("Too many failed attempts, please request a new code.");
+  }
+
+  // Verify the code using constant-time comparison
+  if (!verifyCode(actualCode, codeHash)) {
+    // Increment attempt counter
+    activeCodes[phone].attempts = attempts + 1;
+
+    // Check if this was the last attempt
+    if (activeCodes[phone].attempts >= maxVerificationAttempts) {
+      delete activeCodes[phone];
+      return res.status(401).send("Too many failed attempts, please request a new code.");
+    }
+
+    const remainingAttempts = maxVerificationAttempts - activeCodes[phone].attempts;
+    return res.status(401).send(`Incorrect code. ${remainingAttempts} attempt(s) remaining.`);
+  }
+
+  // Success - delete the code (one-time use)
   delete activeCodes[phone];
   res.send();
 });
