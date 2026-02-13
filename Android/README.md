@@ -1,6 +1,6 @@
 # Sample App for Android
 
-This is a Sample Application showing how to integrate with WhatsApp client to enable 1-tap "Autofill" functionality for one-time password (OTP).
+This is a Sample Application showing how to integrate with WhatsApp client to enable 1-tap "Autofill" and zero-tap functionality for one-time password (OTP).
 
 ## Prerequisites to run the sample application on the emulator with the Sample Server
 
@@ -29,9 +29,9 @@ The class which retrieves the application signature is the _AppSignatureRetrieve
 
 ## Sample Application key references
 
-The Sample Application currently provides one sample implementation for single tap autofill for one-time password messages.
+The Sample Application currently provides sample implementations for single tap autofill and zero-tap for one-time password messages.
 
-The key reference files are the manifest.xml file, the _WaIntentHandler.java_ class, and the _WhatsAppCodeReceiverActivity.java_ class
+The key reference files are the manifest.xml file, the _WhatsAppHandshakeHandler.java_ class, the _SaWhatsAppOtpHandler.java_ class, the _WhatsAppCodeReceiverActivity.java_ class, and the _OtpCodeReceiver.java_ class
 
 ### Manifest.xml
 
@@ -61,8 +61,9 @@ It defines the activity (for one tap messages) and the receiver (for zero tap me
 
 
 - *WhatsAppCodeReceiverActivity.java*: This is the Activity responsible for receiving the code from WhatsApp when customer gets an autofill message.
-- *OtpCodeReceiver.java*: This is the Activity responsible for receiving the code from WhatsApp when customer gets a zero tap message.
-- *WaIntentHandler.java*: This is the class that has the code responsible for doing the handshake.
+- *OtpCodeReceiver.java*: This is the BroadcastReceiver responsible for receiving the code from WhatsApp when customer gets a zero tap message.
+- *SaWhatsAppOtpHandler.java*: This is the class that sends the handshake intent with a request ID to WhatsApp.
+- *WhatsAppHandshakeHandler.java*: This is the class that orchestrates the full handshake flow, including sending the intent and waiting for confirmation.
 
 ### Handshake
 
@@ -73,17 +74,17 @@ To do the handshake this app uses the [WhatsApp-OTP-SDK which is available on Gi
 Sending an intent to WhatsApp to do the handshake as described on the [Authentication templates document](https://developers.facebook.com/docs/whatsapp/business-management-api/authentication-templates/) is as simple as:
 
 ```
-WhatsAppOtpHandler whatsAppOtpHandler = new WhatsAppOtpHandler();
-whatsAppOtpHandler.sendOtpIntentToWhatsApp(context);
+SaWhatsAppOtpHandler whatsAppOtpHandler = new SaWhatsAppOtpHandler(new WhatsAppOtpIntentBuilder());
+whatsAppOtpHandler.sendOtpIntentToWhatsAppWithRequestId(context);
 ```
 
-This sends the handshake to bot the WhatsApp Consumer app and the WhatsApp Business app.
+This sends the handshake to both the WhatsApp Consumer app and the WhatsApp Business app.
 
 For additional details check the [SDK documentation](https://github.com/WhatsApp/WhatsApp-Android-OTP-SDK/).
 
 ## Opening the application on Android Studio
 
-Simply import the project to Android Studio. Android Studio's recommended version is 2021.3.1.
+Simply import the project to Android Studio.
 
 ## Running the App
 

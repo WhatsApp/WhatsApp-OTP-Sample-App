@@ -8,15 +8,12 @@
 package com.whatsapp.otp.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doReturn;
 
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import androidx.test.core.app.ApplicationProvider;
-import com.whatsapp.otp.client.enums.WaClientType;
-import com.whatsapp.otp.android.sdk.exceptions.InvalidWhatsAppOtpIntentException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,7 +61,7 @@ public class WaOtpUtilsTest {
   @Test
   public void test_createCodeBroadcasterIntentWithCodeFromConsumerWhatsApp_succeeds() {
     // Test
-    Intent filledOtpLoginIntent = WaOtpUtils.createCodeBroadcasterIntent(SAMPLE_CODE,
+    Intent filledOtpLoginIntent = WaOtpUtils.createInternalCodeBroadcasterIntent(SAMPLE_CODE,
         BROADCAST_ACTION_LEY, context);
     // Assertions
     assertThat(filledOtpLoginIntent).isNotNull();
