@@ -7,12 +7,15 @@
 
 package com.whatsapp.otp.sample.app.otp;
 
-import com.whatsapp.otp.android.sdk.WhatsAppOtpHandler;
 import com.whatsapp.otp.android.sdk.WhatsAppOtpIncomingIntentHandler;
+import com.whatsapp.otp.android.sdk.WhatsAppOtpIntentBuilder;
+import com.whatsapp.otp.sdkextension.WhatsAppHandshakeHandler;
+import com.whatsapp.otp.sdkoverride.SaWhatsAppOtpHandler;
 import dagger.Module;
 import dagger.Provides;
 import dagger.hilt.InstallIn;
 import dagger.hilt.components.SingletonComponent;
+import java.util.concurrent.Executors;
 import javax.inject.Singleton;
 
 @InstallIn(SingletonComponent.class)
@@ -21,8 +24,8 @@ public abstract class WhatsAppSdkModule {
 
   @Singleton
   @Provides
-  public static WhatsAppOtpHandler whatsAppOtpHandler() {
-    return new WhatsAppOtpHandler();
+  public static SaWhatsAppOtpHandler whatsAppOtpHandler() {
+    return new SaWhatsAppOtpHandler(new WhatsAppOtpIntentBuilder());
   }
 
   @Singleton
@@ -30,4 +33,12 @@ public abstract class WhatsAppSdkModule {
   public static WhatsAppOtpIncomingIntentHandler whatsAppOtpIncomingIntentHandler() {
     return new WhatsAppOtpIncomingIntentHandler();
   }
+
+  @Singleton
+  @Provides
+  public static WhatsAppHandshakeHandler whatsAppHandshakeHandler(
+      final SaWhatsAppOtpHandler saWhatsAppOtpHandler) {
+    return new WhatsAppHandshakeHandler(saWhatsAppOtpHandler, Executors.newCachedThreadPool(), 10);
+  }
+
 }

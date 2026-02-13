@@ -13,24 +13,25 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.NavOptions;
 import androidx.navigation.Navigation;
-import com.whatsapp.otp.android.sdk.WhatsAppOtpHandler;
 import com.whatsapp.otp.common.WaLogger;
 import com.whatsapp.otp.sample.R;
 import com.whatsapp.otp.sample.app.fragment.data.PhoneNumberHolder;
 import com.whatsapp.otp.sample.app.otp.WhatsAppOtpIntentHandler;
 import com.whatsapp.otp.sample.app.signature.AppSignatureRetriever;
 import com.whatsapp.otp.sample.databinding.FragmentOtpSelectChannelBinding;
+import com.whatsapp.otp.sdkextension.WhatsAppHandshakeError;
+import com.whatsapp.otp.sdkextension.WhatsAppHandshakeHandler;
+import com.whatsapp.otp.sdkoverride.SaWhatsAppOtpHandler;
 import dagger.hilt.android.AndroidEntryPoint;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.inject.Inject;
-
 
 @AndroidEntryPoint
 public class OtpChannelSelectorFragment extends Fragment {
@@ -44,29 +45,29 @@ public class OtpChannelSelectorFragment extends Fragment {
   WhatsAppOtpIntentHandler whatsAppOtpIntentHandler;
 
   @Inject
-  WhatsAppOtpHandler whatsAppOtpHandler;
+  SaWhatsAppOtpHandler saWhatsAppOtpHandler;
 
-  @Inject Set<Function<Context, View>> channelSelectorPlugins;
+  @Inject
+  WhatsAppHandshakeHandler whatsAppHandshakeHandler;
+
+  @Inject
+  Set<Function<Context, View>> channelSelectorPlugins;
 
   private FragmentOtpSelectChannelBinding binding;
 
   @Override
-  public View onCreateView(
-      LayoutInflater inflater, ViewGroup container,
-      Bundle savedInstanceState
-  ) {
+  public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+      final Bundle savedInstanceState) {
     binding = FragmentOtpSelectChannelBinding.inflate(inflater, container, false);
     return binding.getRoot();
   }
 
-  public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+  public void onViewCreated(@NonNull final View view, final Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
     Runnable onSuccessHandler = () -> navigateToCodeInputScreen(savedInstanceState);
-    handleWhatsAppInstalledCheck();
     binding.otpGenerateErrorMessageId.setVisibility(View.INVISIBLE);
     binding.requestOtpButtonId.setOnClickListener(currentView -> {
-      sendOtp(onSuccessHandler,
-          this::errorMessageConsumer);
+      sendOtp(onSuccessHandler, this::errorMessageConsumer);
     });
     channelSelectorPlugins.forEach(plugin -> binding.plugins.addView(plugin.apply(getContext())));
     String signatures = String.join("/", appSignatureRetriever.getAppSignatures());
@@ -76,36 +77,61 @@ public class OtpChannelSelectorFragment extends Fragment {
   @Override
   public void onResume() {
     super.onResume();
-    handleWhatsAppInstalledCheck();
+    binding.plugins.removeAllViews();
+    channelSelectorPlugins.forEach(plugin -> binding.plugins.addView(plugin.apply(getContext())));
+
+
+    displayWhatsAppOptionOnlyIfInstalled();
   }
 
-  private void handleWhatsAppInstalledCheck() {
-    boolean whatsAppInstalled = whatsAppOtpHandler.isWhatsAppInstalled(requireContext());
+  private void displayWhatsAppOptionOnlyIfInstalled() {
+    boolean whatsAppInstalled = saWhatsAppOtpHandler.isWhatsAppInstalled(requireContext());
     if (!whatsAppInstalled) {
-      binding.whatsAppInstalledMessage.setText(R.string.whatsapp_is_not_installed_on_this_device);
-      binding.whatsAppInstalledMessage.setVisibility(View.VISIBLE);
-      binding.WhatsAppSelectorId.setVisibility(View.GONE);
-      binding.requestOtpButtonId.setEnabled(false);
+      hideWhatsAppOption(R.string.whatsapp_is_not_installed_on_this_device);
     } else {
-      binding.whatsAppInstalledMessage.setVisibility(View.GONE);
-      binding.WhatsAppSelectorId.setVisibility(View.VISIBLE);
-      binding.requestOtpButtonId.setEnabled(true);
+      final Context context = requireActivity().getApplicationContext();
+      whatsAppHandshakeHandler.handshakeWithWhatsAppAndWaitConfirmation(context,
+          this::handleHandshakeSuccessful, this::handleHanshakeFailure);
     }
   }
 
-  private void navigateToCodeInputScreen(@androidx.annotation.Nullable Bundle savedInstanceState) {
+  private void handleHandshakeSuccessful(final String handshakeRequestId) {
+    WA_LOGGER.info("HandshakeRequestId: " + handshakeRequestId);
+    showWhatsAppOption(R.string.whatsapp_autofill, R.string.whatsapp_handshake_successful);
+  }
+
+  private void handleHanshakeFailure(final WhatsAppHandshakeError handshakeError) {
+    WA_LOGGER.error("Handshake failed with error: " + handshakeError.getErrorType());
+    showWhatsAppOption(R.string.whatsapp_copy_code, R.string.whatsapp_handshake_unsuccessful);
+  }
+
+  private void showWhatsAppOption(@StringRes final int resourceExperienceProvided,
+      @StringRes final int handshakeResultResource) {
+    binding.whatsAppInstalledMessage.setText(resourceExperienceProvided);
+    binding.handshakeResultMessage.setText(handshakeResultResource);
+    binding.whatsAppInstalledMessage.setVisibility(View.VISIBLE);
+    binding.WhatsAppSelectorId.setVisibility(View.VISIBLE);
+    binding.requestOtpButtonId.setEnabled(true);
+  }
+
+  private void hideWhatsAppOption(@StringRes final int resource) {
+    binding.whatsAppInstalledMessage.setText(resource);
+    binding.whatsAppInstalledMessage.setVisibility(View.VISIBLE);
+    binding.WhatsAppSelectorId.setVisibility(View.INVISIBLE);
+    binding.requestOtpButtonId.setEnabled(false);
+  }
+
+  private void navigateToCodeInputScreen(
+      @androidx.annotation.Nullable final Bundle savedInstanceState) {
     this.requireActivity().runOnUiThread(() -> {
-      NavController navController = Navigation.findNavController(this.requireActivity(),
-          R.id.nav_host_fragment_content_main);
-      navController.navigate(R.id.OtpCodeReceivedValidateActionId,
-          savedInstanceState,
-          new NavOptions.Builder()
-              .setLaunchSingleTop(true)
-              .build());
+      NavController navController =
+          Navigation.findNavController(this.requireActivity(), R.id.nav_host_fragment_content_main);
+      navController.navigate(R.id.OtpCodeReceivedValidateActionId, savedInstanceState,
+          new NavOptions.Builder().setLaunchSingleTop(true).build());
     });
   }
 
-  private void errorMessageConsumer(String message) {
+  private void errorMessageConsumer(final String message) {
     requireActivity().runOnUiThread(() -> {
       binding.otpGenerateErrorMessageId.setText(message);
       binding.otpGenerateErrorMessageId.setVisibility(View.VISIBLE);
@@ -113,7 +139,8 @@ public class OtpChannelSelectorFragment extends Fragment {
     });
   }
 
-  private void sendOtp(Runnable onSuccessHandler, Consumer<String> onRequestFailureHandler) {
+  private void sendOtp(final Runnable onSuccessHandler,
+      final Consumer<String> onRequestFailureHandler) {
     WA_LOGGER.info("Sending otp");
     binding.otpGenerateErrorMessageId.setVisibility(View.INVISIBLE);
     final String phoneNumber = getPhoneNumber();
@@ -123,7 +150,7 @@ public class OtpChannelSelectorFragment extends Fragment {
     savePhoneForValidation(phoneNumber);
   }
 
-  private void savePhoneForValidation(String phoneNumber) {
+  private void savePhoneForValidation(final String phoneNumber) {
     PhoneNumberHolder.setPhoneNumber(phoneNumber);
   }
 

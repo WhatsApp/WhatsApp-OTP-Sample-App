@@ -18,33 +18,49 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
-      android:id="@+id/editTextPhoneId"
-      android:hint="@string/hint_phone_number_input_field"
-      android:layout_width="match_parent"
-      android:layout_height="50dp"
-      android:layout_marginTop="8dp"
-      android:textAlignment="center"
-      android:ems="10"
-      android:inputType="phone"
-      app:layout_constraintBottom_toTopOf="@+id/whatsAppInstalledMessage"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toBottomOf="@+id/title_otp_channel_selector"/>
+        android:id="@+id/editTextPhoneId"
+        android:hint="@string/hint_phone_number_input_field"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_marginTop="8dp"
+        android:textAlignment="center"
+        android:ems="10"
+        android:inputType="phone"
+        app:layout_constraintBottom_toTopOf="@+id/whatsAppInstalledMessage"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_otp_channel_selector" />
 
     <TextView
-      android:id="@+id/whatsAppInstalledMessage"
-      android:textStyle="bold"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="16dp"
-      android:layout_marginBottom="16dp"
-      android:text="@string/checking_whatsapp_installation"
-      android:textSize="10pt"
-      app:layout_constraintBottom_toTopOf="@+id/OptionsId"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.498"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toBottomOf="@id/editTextPhoneId" />
+        android:id="@+id/whatsAppInstalledMessage"
+        android:textStyle="bold"
+        android:layout_width="match_parent"
+        android:textAlignment="center"
+        android:layout_height="33dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/checking_whatsapp_installation"
+        android:textSize="10pt"
+        app:layout_constraintBottom_toTopOf="@+id/handshakeResultMessage"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/editTextPhoneId" />
+
+    <TextView
+        android:id="@+id/handshakeResultMessage"
+        android:layout_width="match_parent"
+        android:textAlignment="center"
+        android:layout_height="wrap_content"
+        android:text="@string/checking_whatsapp_handshake"
+        android:enabled="false"
+        android:textSize="15sp"
+        android:textColor="@color/purple_700"
+        app:layout_constraintBottom_toTopOf="@+id/OptionsId"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/whatsAppInstalledMessage" />
+
     <RadioGroup
         android:id="@+id/OptionsId"
         android:layout_width="188dp"
@@ -53,7 +69,7 @@
         app:layout_constraintBottom_toTopOf="@+id/plugins"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/whatsAppInstalledMessage">
+        app:layout_constraintTop_toBottomOf="@+id/handshakeResultMessage">
 
         <RadioButton
             android:id="@+id/WhatsAppSelectorId"
@@ -74,15 +90,16 @@
     </RadioGroup>
 
     <LinearLayout
-      android:id="@+id/plugins"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:orientation="vertical"
-      app:layout_constraintBottom_toTopOf="@+id/request_otp_button_id"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.498"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toBottomOf="@+id/OptionsId" />
+        android:id="@+id/plugins"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/request_otp_button_id"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/OptionsId" />
+
     <Button
         android:id="@+id/request_otp_button_id"
         android:layout_width="wrap_content"
@@ -95,17 +112,17 @@
         app:layout_constraintTop_toBottomOf="@+id/plugins" />
 
     <TextView
-      android:id="@+id/otpGenerateErrorMessageId"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:enabled="false"
-      android:textSize="15sp"
-      android:textAlignment="center"
-      android:textColor="@color/red"
-      app:layout_constraintBottom_toTopOf="@+id/hashSignatureId"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toBottomOf="@+id/request_otp_button_id" />
+        android:id="@+id/otpGenerateErrorMessageId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:enabled="false"
+        android:textSize="15sp"
+        android:textAlignment="center"
+        android:textColor="@color/red"
+        app:layout_constraintBottom_toTopOf="@+id/hashSignatureId"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/request_otp_button_id" />
 
     <TextView
         android:id="@+id/hashSignatureId"
